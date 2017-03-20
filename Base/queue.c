@@ -24,7 +24,7 @@ void init_queue(qHead queue)
 //insert a ele to a queue
 void insert_queue(qHead queue,void *ele)
 {
-	assert(ele != NULL && queue != NULL);
+    assert(ele != NULL && queue != NULL);
     
     qPtr qptr = malloc(sizeof(struct queue_node));
     if (!qprt) {
@@ -47,28 +47,28 @@ void insert_queue(qHead queue,void *ele)
 //get the first queue and remove it from queue
 void *pop_queue(qHead queue)
 {
-	assert(queue != NULL);
+    assert(queue != NULL);
 
-	if (queue->first) {
-		void *temp = queue->first;
-		void *tptr = queue->first->ele;
-		queue->first = queue->first->next;
-		free(temp);	
-		return tptr;
-	} else {
-		return NULL;
-	}
+    if (queue->first) {
+	void *temp = queue->first;
+	void *tptr = queue->first->ele;
+	queue->first = queue->first->next;
+	free(temp);	
+	return tptr;
+    } else {
+	return NULL;
+    }
 }
 
 //destroy the queue
 void delete_queue(qHead queue) 
 {
-	assert(queue != NULL);
+    assert(queue != NULL);
     qPtr temp = NULL;
     qPtr temp_another;
-	for (qPtr temp_another = queue->first ; temp_another != NULL ; temp_another = temp_another->next) {
-		temp = temp_another;
-		free(temp);
-	}
-	return;
+    for (qPtr temp_another = queue->first ; temp_another != NULL ; temp_another = temp_another->next) {
+	temp = temp_another;
+	free(temp);
+    }
+    return;
 }
