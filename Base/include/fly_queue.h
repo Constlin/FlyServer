@@ -32,7 +32,7 @@ int fly_insert_queue(qHead queue,void *ele);
 void *fly_pop_queue(qHead queue);
 
 //delete ele from queue anywhere
-void fly_delete_queue(qHead queue,void *ele);
+bool fly_delete_queue(qHead queue,void *ele);
 
 //reture weather the queue is empty or not
 bool fly_queue_empty(qHead queue);
