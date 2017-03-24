@@ -60,9 +60,43 @@ void *fly_pop_queue(qHead queue)
 	}
 }
 
-void fly_delete_queue(qHead queue,void *ele)
+bool fly_delete_queue(qHead queue,void *ele)
 {
+    if (queue == NULL || ele == NULL) {
+        printf("queue or ele NULL.\n");
+        return false;
+    }
 
+    qPtr pt = queue->first;
+    qPtr pt_before = pt;
+    qPtr pt_next;
+    int ret = 0;
+    for (; pt != NULL; pt = pt->next) {
+        if (pt->ele == ele && pt == pt_before) {           
+            //head
+            free(pt);
+            queue->first = queue->last = NULL;
+            ret = 1;
+            break;           
+        } else if (pt->ele == ele && pt != pt_before) {
+            if (!pt->next) {
+                //pt is the last one
+                free(pt);
+                queue->last = pt_before;
+                ret = 1;
+                break;
+            } else {
+                //pt is not the last one
+                pt_next = pt->next;
+                free(pt);
+                pt_before = pt_next;
+                ret = 1;
+                break;
+            }
+        }       
+        pt_before = pt;
+    }
+    return ret == 1? true:false;
 }
 
 bool fly_queue_empty(qHead queue)
