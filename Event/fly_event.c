@@ -8,18 +8,18 @@ Author: Andrew lin
 
 fly_core *fly_core_init()
 {
-	fly_core *core;
-	if ((core = malloc(sizeof(fly_core))) == NULL) {
-    	printf("malloc error.\n")
+    fly_core *core;
+    if ((core = malloc(sizeof(fly_core))) == NULL) {
+        printf("malloc error.\n")
     	return NULL;
-	}
-	memset(core,0,sizeof(fly_core));
+    }
+    memset(core,0,sizeof(fly_core));
 
-	core->fly_reg_queue = fly_init_queue();
-	core->fly_active_queue = fly_init_queue();
-	if (core->fly_reg_queue == NULL || core->fly_active_queue == NULL) {
-		return NULL;
-	}
+    core->fly_reg_queue = fly_init_queue();
+    core->fly_active_queue = fly_init_queue();
+    if (core->fly_reg_queue == NULL || core->fly_active_queue == NULL) {
+	return NULL;
+    }
     
     if ((core->ep_info = malloc(sizeof(struct epoll_info))) == NULL) {
     	printf("malloc error.\n")
@@ -27,31 +27,30 @@ fly_core *fly_core_init()
     }
     memset(core->ep_info,0,sizeof(struct epoll_info));
 
-	if ((core->ep_info->epoll_fd = epoll_create(32000)) == -1) {
-		printf("epoll create error.\n");
-		return NULL;
-	}
-	if ((core->ep_info->events = malloc(100*sizeof(struct epoll_event))) == NULL) {
-		printf("epoll create error.\n");
-		return NULL;
-	}
+    if ((core->ep_info->epoll_fd = epoll_create(32000)) == -1) {
+	printf("epoll create error.\n");
+	return NULL;
+    }
+    if ((core->ep_info->events = malloc(100*sizeof(struct epoll_event))) == NULL) {
+	printf("epoll create error.\n");
+	return NULL;
+    }
     core->ep_info->nevents = 100;
-	return core;
+    return core;
 }
 
 int fly_event_set(int fd,void (*callback)(int,void *),fly_event *ev,int flags,void *arg,fly_core *core)
 {
-	if (callback == NULL || ev == NULL || arg == NULL || core == NULL) {
-		return -1;
-	}
-	ev->fd = fd;
-	ev->callback = callback;
-	ev->flags = flags;
-	ev->arg = arg;
-	ev->core = core;
-	ev->status = FLY_LIST_REG;
-
-	return 0;
+    if (callback == NULL || ev == NULL || arg == NULL || core == NULL) {
+	return -1;
+    }
+    ev->fd = fd;
+    ev->callback = callback;
+    ev->flags = flags;
+    ev->arg = arg;
+    ev->core = core;
+    ev->status = FLY_LIST_REG;
+    return 0;
 }
 
 int fly_event_add(fly_event *ev) 
@@ -93,9 +92,9 @@ int fly_event_add(fly_event *ev)
 //      2.should del ele at epoll too
 int fly_event_del(fly_event *ev) 
 {
-	if (ev == NULL) {
-		return -1;
-	}
+    if (ev == NULL) {
+	return -1;
+    }
 
     int ret = 0;
 	switch (ev->status) {
@@ -229,7 +228,7 @@ int fly_event_dispatch(fly_core *core)
         __uint32_t u32;  
         __uint64_t u64;  
       } epoll_data_t;  
-      //感兴趣的事件和被触发的事件  
+    
       struct epoll_event {  
         __uint32_t events;  //Epoll events   
         epoll_data_t data;  //User data variable 
