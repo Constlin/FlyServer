@@ -99,10 +99,10 @@ int fly_event_del(fly_event *ev)
     int ret = 0;
 	switch (ev->status) {
     	case FLY_LIST_ACTIVE:
-    	    ret = fly_delete_queue(core->fly_reg_queue,ev) == NULL?-2:1;
+    	    ret = fly_delete_queue(core->fly_reg_queue,ev) == false?-2:1;
     	    break;
     	case FLY_LIST_PROCESS:
-    	    ret = fly_delete_queue(core->fly_active_queue,ev) == NULL?-2:1;
+    	    ret = fly_delete_queue(core->fly_active_queue,ev) == false?-2:1;
     	    break;
     	case FLY_LIST_REG:
         default:
