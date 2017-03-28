@@ -5,14 +5,15 @@ Author: Andrew lin
 ********************************/
 #include <stdio.h>
 #include <malloc.h>
-#include "queue.h"
+#include "fly_queue.h"
+
 
 //initializate a queue
-void* fly_init_queue() 
+qHead fly_init_queue() 
 {
-    qHead queue = malloc(sizeof(struct queue_head));
+    qHead queue = malloc(sizeof(struct fly_queue_head));
     if (!queue) {
-    	printf("malloc error.\n")
+    	printf("malloc error.\n");
         return NULL;
     }
     queue->first = NULL;
@@ -23,11 +24,13 @@ void* fly_init_queue()
 //insert a ele to a queue
 int fly_insert_queue(qHead queue,void *ele)
 {
-	assert(ele != NULL && queue != NULL);
+    if (queue == NULL || ele == NULL) {
+        return -1;
+    }
     
-    qPtr qptr = malloc(sizeof(struct queue_node));
-    if (!qprt) {
-    	printf("malloc error.\n")
+    qPtr qptr = malloc(sizeof(struct fly_queue_node));
+    if (!qptr) {
+    	printf("malloc error.\n");
         return -1;
     }
     qptr->ele = ele;
@@ -47,7 +50,9 @@ int fly_insert_queue(qHead queue,void *ele)
 //get the first queue and remove it from queue
 void *fly_pop_queue(qHead queue)
 {
-	assert(queue != NULL);
+	if (queue == NULL) {
+        return NULL;
+    }
 
 	if (queue->first) {
 		void *temp = queue->first;
@@ -60,22 +65,26 @@ void *fly_pop_queue(qHead queue)
 	}
 }
 
-bool fly_delete_queue(qHead queue,void *ele)
+int fly_delete_queue(qHead queue,void *ele)
 {
     if (queue == NULL || ele == NULL) {
         printf("queue or ele NULL.\n");
-        return false;
+        return -1;
     }
 
     qPtr pt = queue->first;
-    qPtr pt_before = pt;
-    qPtr pt_next;
+    qPtr pt_before = queue->first;  
+    qPtr pt_next = pt->next;
     int ret = 0;
-    for (; pt != NULL; pt = pt->next) {
+    for (; pt != NULL; pt_before = pt, pt = pt->next) {
         if (pt->ele == ele && pt == pt_before) {           
             //head
             free(pt);
-            queue->first = queue->last = NULL;
+            if (pt_next == NULL) {
+                queue->first = queue->last = NULL;
+                return 1;
+            }
+            queue->first = pt_next;
             ret = 1;
             break;           
         } else if (pt->ele == ele && pt != pt_before) {
@@ -83,25 +92,25 @@ bool fly_delete_queue(qHead queue,void *ele)
                 //pt is the last one
                 free(pt);
                 queue->last = pt_before;
+                queue->last->next = NULL;
                 ret = 1;
                 break;
             } else {
                 //pt is not the last one
                 pt_next = pt->next;
                 free(pt);
-                pt_before = pt_next;
+                pt_before->next = pt_next;
                 ret = 1;
                 break;
             }
-        }       
-        pt_before = pt;
+        }             
     }
-    return ret == 1? true:false;
+    return ret;
 }
 
-bool fly_queue_empty(qHead queue)
+int fly_queue_empty(qHead queue)
 {
-    return queue->first == NULL?true:false;
+    return queue->first == NULL? 1: -1;
 }
 
 int fly_queue_length(qHead queue)
@@ -116,15 +125,61 @@ int fly_queue_length(qHead queue)
     return len;
 }
 
-//destroy the queue
-void fly_destroy_queue(qHead queue) 
+//destroy the queue, the ptr is used to avoid wild pointers
+void fly_destroy_queue(qHead queue,qHead *ptr) 
 {
-	assert(queue != NULL);
-    qPtr temp = NULL;
-    qPtr temp_another;
-	for (qPtr temp_another = queue->first ; temp_another != NULL ; temp_another = temp_another->next) {
-		temp = temp_another;
-		free(temp);
+    if (queue == NULL) {
+        return;
+    }
+
+    qPtr current = NULL;
+    qPtr item;
+
+	for (qPtr item = queue->first ; item != NULL ; item = item->next) {
+		current = item;
+		free(current);
+        current = NULL;
 	}
+    
+    free(queue);
+    *ptr = NULL;
+
 	return;
 }
+
+/*
+    the main's function is testing fly_queue.
+    test case:
+    1.insert node
+    2.delete node at first, last, middle location
+    3.destroy the queue
+*/
+
+/*
+int main() 
+{
+    qPtr temp_queuenode;
+    int ele1 = 100, ele2 = 200, ele3 = 300;
+    qHead test_head= fly_init_queue();
+    fly_insert_queue (test_head,&ele1);
+    fly_insert_queue (test_head,&ele2);
+    fly_insert_queue (test_head,&ele3);
+
+    for (temp_queuenode = test_head->first; temp_queuenode != NULL; temp_queuenode = temp_queuenode->next) {
+        printf("the ele is : %d \n",*((int*)temp_queuenode->ele));
+    }
+    
+    fly_destroy_queue(test_head,&test_head);
+    fly_destroy_queue(test_head,&test_head);
+    fly_insert_queue (test_head,&ele1);
+    //free(test_head);
+    //test_head = NULL;
+
+
+    for (temp_queuenode = test_head == NULL? NULL: test_head->first; temp_queuenode != NULL ; temp_queuenode = temp_queuenode->next) {
+        printf("the ele is : %d \n",*((int*)temp_queuenode->ele));
+    }
+    return 1;
+} 
+
+*/
