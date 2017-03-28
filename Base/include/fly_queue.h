@@ -23,7 +23,7 @@ typedef struct fly_queue_head* qHead;
 
 
 //initializate a queue
-void* fly_init_queue();
+qHead fly_init_queue();
 
 //insert a ele to a queue
 int fly_insert_queue(qHead queue,void *ele);
@@ -32,15 +32,15 @@ int fly_insert_queue(qHead queue,void *ele);
 void *fly_pop_queue(qHead queue);
 
 //delete ele from queue anywhere
-bool fly_delete_queue(qHead queue,void *ele);
+int fly_delete_queue(qHead queue,void *ele);
 
 //reture weather the queue is empty or not
-bool fly_queue_empty(qHead queue);
+int fly_queue_empty(qHead queue);
 
 //get queue length
 int fly_queue_length(qHead queue);
 
 //destroy the queue
-void fly_destroy_queue(qHead queue);
+void fly_destroy_queue(qHead queue,qHead *ptr);
 
 #endif
