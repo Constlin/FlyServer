@@ -1,16 +1,19 @@
-
 /********************************
 operation about event.
 
 Author: Andrew lin
 ********************************/
+#include <stdio.h>
+#include <malloc.h>
+#include <string.h>
+#include <sys/epoll.h>
 #include "fly_event.h"
 
 fly_core *fly_core_init()
 {
     fly_core *core;
     if ((core = malloc(sizeof(fly_core))) == NULL) {
-        printf("malloc error.\n")
+        printf("malloc error.\n");
     	return NULL;
     }
     memset(core,0,sizeof(fly_core));
@@ -22,7 +25,7 @@ fly_core *fly_core_init()
     }
     
     if ((core->ep_info = malloc(sizeof(struct epoll_info))) == NULL) {
-    	printf("malloc error.\n")
+    	printf("malloc error.\n");
     	return NULL;
     }
     memset(core->ep_info,0,sizeof(struct epoll_info));
@@ -61,7 +64,7 @@ int fly_event_add(fly_event *ev)
     
     int ret = 0;
     if (ev->status & FLY_LIST_REG) {
-    	ret = fly_insert_queue(core->fly_reg_queue,ev) == NULL?-2:1;
+    	ret = fly_insert_queue(ev->core->fly_reg_queue,ev) == -1?-2:1;
     	switch (ret) {   	
     		case  0:
     		    ev->status = FLY_LIST_ACTIVE;
@@ -72,7 +75,7 @@ int fly_event_add(fly_event *ev)
     	}
     	
     } else if (ev->status & FLY_LIST_ACTIVE) {
-    	ret = fly_insert_queue(core->fly_active_queue,ev) == NULL?-2:1;
+    	ret = fly_insert_queue(ev->core->fly_active_queue,ev) == -1?-2:1;
     	switch (ret) {    	
     		case  0:
     		    ev->status = FLY_LIST_PROCESS;
@@ -99,10 +102,10 @@ int fly_event_del(fly_event *ev)
     int ret = 0;
 	switch (ev->status) {
     	case FLY_LIST_ACTIVE:
-    	    ret = fly_delete_queue(core->fly_reg_queue,ev) == false?-2:1;
+    	    ret = fly_delete_queue(ev->core->fly_reg_queue,ev) != 1?-2:1;
     	    break;
     	case FLY_LIST_PROCESS:
-    	    ret = fly_delete_queue(core->fly_active_queue,ev) == false?-2:1;
+    	    ret = fly_delete_queue(ev->core->fly_active_queue,ev) != 1?-2:1;
     	    break;
     	case FLY_LIST_REG:
         default:
@@ -163,17 +166,17 @@ int fly_event_add_to_epoll(fly_core *core)
     	}
         
         if (event->flags & (FLY_EVENT_READ|FLY_EVENT_WRITE)) {
-        	if (evevt->flags & FLY_EVENT_READ) {
+        	if (event->flags & FLY_EVENT_READ) {
         		op = EPOLL_CTL_ADD;
-        	    epev->data.fd = event->fd;
-        	    epev->events = EPOLLIN; //just care about this event's read event
+        	    epev.data.fd = event->fd;
+        	    epev.events = EPOLLIN; //just care about this event's read event
         	} else if (event->flags & FLY_EVENT_WRITE) {
         		op = EPOLL_CTL_ADD;
-        		epev->data.fd = event->fd;
-        		epev->events = EPOLLOUT; //just care about this event's write event
+        		epev.data.fd = event->fd;
+        		epev.events = EPOLLOUT; //just care about this event's write event
         	}
             //we use the default LT for epoll. 
-        	if (epoll_ctl(core->epoll_fd,op,event->fd,&epev) == -1) {
+        	if (epoll_ctl(core->ep_info->epoll_fd,op,event->fd,&epev) == -1) {
         		printf("epoll_ctl error.\n");
         		continue;
         	}
@@ -184,23 +187,23 @@ int fly_event_add_to_epoll(fly_core *core)
 	return num;
 }
 
-bool fly_event_remove_from_epoll(fly_event *event) 
+int fly_event_remove_from_epoll(fly_event *event) 
 {
     struct epoll_event epev;
-    epev.data.fd = event.fd;
-    if (evevt->flags & FLY_EVENT_READ) {
-        epev->events = EPOLLIN;
+    epev.data.fd = event->fd;
+    if (event->flags & FLY_EVENT_READ) {
+        epev.events = EPOLLIN;
     } else if (event->flags & FLY_EVENT_WRITE) {
-        epev->events = EPOLLOUT;
+        epev.events = EPOLLOUT;
     } else {
         printf("what's this event?\n");
     }
-    if (epoll_ctl(event->core->epoll_fd,EPOLL_CTL_DEL,event->fd,&epev) == -1) {
+    if (epoll_ctl(event->core->ep_info->epoll_fd,EPOLL_CTL_DEL,event->fd,&epev) == -1) {
         printf("epoll del error.\n");
-        return false;
+        return -1;
     }
 
-    return true;
+    return 1;
 }
 
 //todo:incomplete
@@ -269,8 +272,9 @@ int fly_event_dispatch(fly_core *core)
     return 0;
 }
 
-fly_event *fly_use_fd_find_event(int fd,qHead *head)
+fly_event *fly_use_fd_find_event(int fd,qHead head)
 {
+    fly_event *ev;
     if (head == NULL || fd < 0) {
         printf("queue head is NULL or fd < 0.\n");
         return NULL;
@@ -283,7 +287,8 @@ fly_event *fly_use_fd_find_event(int fd,qHead *head)
     }
 
     for (; qp != NULL; qp = qp->next) {
-        if (fd == qp->ele->fd) {
+        ev = qp->ele;
+        if (fd == ev->fd) {
             return qp->ele;
         } else {
             continue;
@@ -314,5 +319,8 @@ int fly_process_active(fly_core *core)
     return 0;
 }
 
-
+void main() 
+{
+    return;
+}
 
