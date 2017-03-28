@@ -19,6 +19,10 @@ Author: Andrew lin
 #define FLY_CTL_DEL 0x02
 #define FLY_CTL_MOD 0X04
 
+typedef struct fly_event fly_event;
+
+typedef struct fly_core fly_core;
+
 struct fly_event {
 	 int fd;
 	 /*
@@ -73,9 +77,6 @@ struct fly_core {
     struct epoll_info *ep_info;
 };
 
-typedef struct fly_event fly_event;
-
-typedef struct fly_core fly_core;
 
 fly_core *fly_core_init();
 
@@ -86,13 +87,13 @@ int fly_event_add(fly_event *ev);
 //remove event from reg queue
 int fly_event_del(fly_event *ev);
 
-int fly_core_cycle(fly_core *core);
+void fly_core_cycle(fly_core *core);
 
 //add event to epoll, return number of events added to the epoll
 int fly_event_add_to_epoll(fly_core *core);
 
 //remove event from epoll
-bool fly_event_remove_from_epoll(fly_core *core);
+int fly_event_remove_from_epoll(fly_event *event);
 
 //use epoll,if I/O event is active,add it from reg queue to active queue.
 int fly_event_dispatch(fly_core *core);
@@ -101,7 +102,7 @@ int fly_event_dispatch(fly_core *core);
 int fly_process_active(fly_core *core);
 
 //use fd to find event in reg queue.
-fly_event *fly_use_fd_find_event(int fd,qHead *head);
+fly_event *fly_use_fd_find_event(int fd,qHead head);
 
 
 #endif
