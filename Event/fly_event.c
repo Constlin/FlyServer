@@ -7,6 +7,8 @@ Author: Andrew lin
 #include <malloc.h>
 #include <string.h>
 #include <sys/epoll.h>
+#include <fcntl.h>
+#include <errno.h>
 #include "fly_event.h"
 
 fly_core *fly_core_init()
@@ -31,12 +33,15 @@ fly_core *fly_core_init()
     memset(core->ep_info,0,sizeof(struct epoll_info));
 
     if ((core->ep_info->epoll_fd = epoll_create(32000)) == -1) {
-	printf("epoll create error.\n");
-	return NULL;
+	    printf("epoll create error.\n");
+	    return NULL;
+    } else {
+        printf("epoll create successfully,epoll_fd: %d\n",core->ep_info->epoll_fd);
     }
+
     if ((core->ep_info->events = malloc(100*sizeof(struct epoll_event))) == NULL) {
-	printf("epoll create error.\n");
-	return NULL;
+	    printf("epoll create error.\n");
+	    return NULL;
     }
     core->ep_info->nevents = 100;
     return core;
@@ -44,8 +49,16 @@ fly_core *fly_core_init()
 
 int fly_event_set(int fd,void (*callback)(int,void *),fly_event *ev,int flags,void *arg,fly_core *core)
 {
-    if (callback == NULL || ev == NULL || arg == NULL || core == NULL) {
-	return -1;
+    if (callback == NULL || ev == NULL  || core == NULL) {
+        if (callback == NULL) {
+            printf("callback null.\n");
+        } else if (ev == NULL) {
+            printf("ev null.\n");
+        } else if (core == NULL) {
+            printf("core null.\n");
+        }
+
+	    return -1;
     }
     ev->fd = fd;
     ev->callback = callback;
@@ -61,10 +74,10 @@ int fly_event_add(fly_event *ev)
     if (ev == NULL) {
     	return -1;
     }
-    
+
     int ret = 0;
     if (ev->status & FLY_LIST_REG) {
-    	ret = fly_insert_queue(ev->core->fly_reg_queue,ev) == -1?-2:1;
+    	ret = fly_insert_queue(ev->core->fly_reg_queue,ev) == -1?-2:0;
     	switch (ret) {   	
     		case  0:
     		    ev->status = FLY_LIST_ACTIVE;
@@ -75,7 +88,7 @@ int fly_event_add(fly_event *ev)
     	}
     	
     } else if (ev->status & FLY_LIST_ACTIVE) {
-    	ret = fly_insert_queue(ev->core->fly_active_queue,ev) == -1?-2:1;
+    	ret = fly_insert_queue(ev->core->fly_active_queue,ev) == -1?-2:0;
     	switch (ret) {    	
     		case  0:
     		    ev->status = FLY_LIST_PROCESS;
@@ -125,12 +138,12 @@ void fly_core_cycle(fly_core *core)
             return;
         }
 
-        if (!fly_event_add_to_epoll(core)) {
+        if (fly_event_add_to_epoll(core) == 0) {
             //no event add to epoll
             printf("no events add to epoll.\n");
         }
 
-        if (!fly_event_dispatch(core)) {
+        if (fly_event_dispatch(core) != 0) {
             return;
         }
     
@@ -151,21 +164,24 @@ int fly_event_add_to_epoll(fly_core *core)
     int op;
     int num = 0;
 
-	if (fly_queue_empty(core->fly_reg_queue)) {
+	if (fly_queue_empty(core->fly_reg_queue) == 1) {
     	//reg queue is empty,no need to add event to epoll,just return
+        printf("the reg queue is empty.\n");
     	return 0;
 	}
 
 	//add all events to epoll from reg queue
-	for (int i = 0 ; i<fly_queue_length(core->fly_reg_queue) ; i++) {
+	for (int i = 0; i < fly_queue_length(core->fly_reg_queue); i++) {
+        printf("the queue length is: %d.\n", fly_queue_length(core->fly_reg_queue));
 		event = fly_pop_queue(core->fly_reg_queue);
-    	if (event = NULL) {
+
+    	if (event == NULL) {
     		printf("event popped from queue is NULL.\n");
     		//if get event is NULL,we just ignore it and go continue.
     		continue;
     	}
         
-        if (event->flags & (FLY_EVENT_READ|FLY_EVENT_WRITE)) {
+        if (event->flags & (FLY_EVENT_READ | FLY_EVENT_WRITE)) {
         	if (event->flags & FLY_EVENT_READ) {
         		op = EPOLL_CTL_ADD;
         	    epev.data.fd = event->fd;
@@ -176,14 +192,17 @@ int fly_event_add_to_epoll(fly_core *core)
         		epev.events = EPOLLOUT; //just care about this event's write event
         	}
             //we use the default LT for epoll. 
-        	if (epoll_ctl(core->ep_info->epoll_fd,op,event->fd,&epev) == -1) {
-        		printf("epoll_ctl error.\n");
+            printf("epoll_fd: %d, op: %d, fd: %d epev.data.fd: %d, epev.events: %d\n",core->ep_info->epoll_fd, op, event->fd, epev.data.fd, epev.events);
+        	if (epoll_ctl(core->ep_info->epoll_fd, op, event->fd, &epev) == -1) {
+        		perror("epoll_ctl error.\n");
         		continue;
-        	}
+        	} else {
+                printf("add a event to epoll.\n");
+            }
         	num++;
         }
 	}
-
+    
 	return num;
 }
 
@@ -198,7 +217,7 @@ int fly_event_remove_from_epoll(fly_event *event)
     } else {
         printf("what's this event?\n");
     }
-    if (epoll_ctl(event->core->ep_info->epoll_fd,EPOLL_CTL_DEL,event->fd,&epev) == -1) {
+    if (epoll_ctl(event->core->ep_info->epoll_fd, EPOLL_CTL_DEL, event->fd, &epev) == -1) {
         printf("epoll del error.\n");
         return -1;
     }
@@ -216,12 +235,17 @@ int fly_event_dispatch(fly_core *core)
         return -1;
     }
 
-    int nfds = epoll_wait(core->ep_info->epoll_fd,core->ep_info->events,core->ep_info->nevents,200);
+    int nfds = epoll_wait(core->ep_info->epoll_fd, core->ep_info->events, core->ep_info->nevents, 200);
 
-    if (nfds = -1) {
-    	printf("epoll wait error.\n");
-    	return -1;
+    if (nfds < 0) {
+        if (errno != EINTR) {
+            perror("epoll wait error.\n");
+            return -1;
+        }
+
+        return 0;
     }
+    	
 
     /*
       in linux epoll:
@@ -239,8 +263,12 @@ int fly_event_dispatch(fly_core *core)
     */
     for (int i = 0; i < nfds; i++) {
         int what = core->ep_info->events[i].events;
-
-        if (ev = fly_use_fd_find_event(core->ep_info->events[i].data.fd,head) == NULL) {
+        /*
+            there has a problem:
+            before epoll_ctl,we get the event by fly_pop_queue,so we can't get event 
+            from reg queue.
+        */
+        if (ev = fly_use_fd_find_event(core->ep_info->events[i].data.fd, head) == NULL) {
                 printf("fly_use_fd_find_event return NULL.\n");
                 return -1;
         }
@@ -272,7 +300,7 @@ int fly_event_dispatch(fly_core *core)
     return 0;
 }
 
-fly_event *fly_use_fd_find_event(int fd,qHead head)
+fly_event *fly_use_fd_find_event(int fd, qHead head)
 {
     fly_event *ev;
     if (head == NULL || fd < 0) {
@@ -319,8 +347,51 @@ int fly_process_active(fly_core *core)
     return 0;
 }
 
+void fifo_read() 
+{
+    printf("fifo_read: is here.\n");
+}
+
 void main() 
 {
+    fly_event event;
+    static int fds[2];
+
+    //epoll have not support file's fd and directory's fd
+    if (pipe(fds)) {
+        perror("create pipe error.\n");
+        return;
+    }
+
+    fly_core *core = fly_core_init();
+    if (core == NULL) {
+        printf("fly_core_init error.\n");
+        return;
+    }
+    /*
+    event = malloc(sizeof(struct fly_eventt));
+    if (event == NULL) {
+        printf(malloc error.\n);
+        return;
+    }
+    */
+
+    if (fly_event_set(fds[0], fifo_read, &event, FLY_EVENT_READ, &event, core) == -1) {
+        printf("fly_event_set error.\n");
+        return;
+    }
+    
+    fly_event_add(&event);
+    
+    //test code: write
+    //we just only write fds[1] but can't write fds[0]
+    if (write(fds[1], "c", 1) != 1) {
+        perror("write error.\n");
+    }
+
+    fly_core_cycle(core);
     return;
 }
+
+
 
