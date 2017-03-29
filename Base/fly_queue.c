@@ -164,14 +164,13 @@ int main()
     fly_insert_queue (test_head,&ele1);
     fly_insert_queue (test_head,&ele2);
     fly_insert_queue (test_head,&ele3);
-
+    printf("the queue length is: %d.\n",fly_queue_length(test_head));
     for (temp_queuenode = test_head->first; temp_queuenode != NULL; temp_queuenode = temp_queuenode->next) {
         printf("the ele is : %d \n",*((int*)temp_queuenode->ele));
     }
     
-    fly_destroy_queue(test_head,&test_head);
-    fly_destroy_queue(test_head,&test_head);
-    fly_insert_queue (test_head,&ele1);
+    fly_delete_queue(test_head,&ele1);
+    printf("the queue length is: %d.\n",fly_queue_length(test_head));
     //free(test_head);
     //test_head = NULL;
 
@@ -180,6 +179,5 @@ int main()
         printf("the ele is : %d \n",*((int*)temp_queuenode->ele));
     }
     return 1;
-} 
-
+}
 */
