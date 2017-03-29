@@ -104,5 +104,7 @@ int fly_process_active(fly_core *core);
 //use fd to find event in reg queue.
 fly_event *fly_use_fd_find_event(int fd,qHead head);
 
+//test method
+void fifo_read();
 
 #endif
