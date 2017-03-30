@@ -64,13 +64,17 @@ struct epoll_info {
 
 struct fly_core {
 	  /*
-      registered queue
+      registered queue, save the event needed to add into epoll
     */
     struct fly_queue_head *fly_reg_queue;
     /*
       active queue
     */
     struct fly_queue_head *fly_active_queue;
+    /*
+      I/O even queue which save the I/O event has added into epoll
+    */
+    struct fly_queue_head *fly_io_queue;
     /*
       store the information about epoll
     */
@@ -87,6 +91,11 @@ int fly_event_add(fly_event *ev);
 //remove event from reg queue
 int fly_event_del(fly_event *ev);
 
+/*
+    function: add the events from reg queue to epoll and save the regged events at I/O queue,
+              and then use epoll_wait this events added in epoll happen,if happen add this 
+              events to fly_active_queue and process these active events.
+*/
 void fly_core_cycle(fly_core *core);
 
 //add event to epoll, return number of events added to the epoll
