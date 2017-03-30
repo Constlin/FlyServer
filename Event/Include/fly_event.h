@@ -24,12 +24,12 @@ typedef struct fly_event fly_event;
 typedef struct fly_core fly_core;
 
 struct fly_event {
-	 int fd;
-	 /*
-	   the thing that the event take care. 
-	   FLY_EVENT_READ mean I/O read event,
-	   FLY_EVENT_WRITE mean I/O write event.
-	 */
+    int fd;
+    /*
+        the thing that the event take care. 
+	FLY_EVENT_READ mean I/O read event,
+	FLY_EVENT_WRITE mean I/O write event.
+    */
     int flags;
     /*
       the event next in which queue.
@@ -57,9 +57,9 @@ struct fly_event {
 };
 
 struct epoll_info {
-	int epoll_fd;
-	struct epoll_event *events;
-	int nevents;
+    int epoll_fd;
+    struct epoll_event *events;
+    int nevents;
 };
 
 struct fly_core {
