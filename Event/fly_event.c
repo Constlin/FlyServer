@@ -22,8 +22,9 @@ fly_core *fly_core_init()
 
     core->fly_reg_queue = fly_init_queue();
     core->fly_active_queue = fly_init_queue();
-    if (core->fly_reg_queue == NULL || core->fly_active_queue == NULL) {
-	return NULL;
+    core->fly_io_queue = fly_init_queue();
+    if (core->fly_reg_queue == NULL || core->fly_active_queue == NULL || core->fly_io_queue == NULL) {
+	    return NULL;
     }
     
     if ((core->ep_info = malloc(sizeof(struct epoll_info))) == NULL) {
@@ -129,7 +130,6 @@ int fly_event_del(fly_event *ev)
 	return ret;
 }
 
-//todo:incomplete
 void fly_core_cycle(fly_core *core) 
 {
     while(1) {
@@ -140,15 +140,21 @@ void fly_core_cycle(fly_core *core)
 
         if (fly_event_add_to_epoll(core) == 0) {
             //no event add to epoll
-            printf("no events add to epoll.\n");
+            //printf("no events add to epoll.\n");
         }
-
-        if (fly_event_dispatch(core) != 0) {
-            return;
+        
+        if (fly_queue_empty(core->fly_io_queue) != 1) {
+            if (fly_event_dispatch(core) != 0) {
+                return;
+            }
+        } else {
+            //printf("no events add to epoll.\n");
         }
+        
     
-        if (!fly_queue_empty(core->fly_active_queue)) {
+        if (fly_queue_empty(core->fly_active_queue) != 1) {
             //todo: process the active events in active queue.
+            printf("active queue is not empty, process active event.\n");
             fly_process_active(core);
         }
     }
@@ -166,7 +172,7 @@ int fly_event_add_to_epoll(fly_core *core)
 
 	if (fly_queue_empty(core->fly_reg_queue) == 1) {
     	//reg queue is empty,no need to add event to epoll,just return
-        printf("the reg queue is empty.\n");
+        //printf("the reg queue is empty.\n");
     	return 0;
 	}
 
@@ -180,7 +186,10 @@ int fly_event_add_to_epoll(fly_core *core)
     		//if get event is NULL,we just ignore it and go continue.
     		continue;
     	}
-        
+        if (fly_insert_queue(core->fly_io_queue, event) != 0) {
+            printf("add event to I/O queue error.\n");
+            return -1;
+        }
         if (event->flags & (FLY_EVENT_READ | FLY_EVENT_WRITE)) {
         	if (event->flags & FLY_EVENT_READ) {
         		op = EPOLL_CTL_ADD;
@@ -229,7 +238,7 @@ int fly_event_remove_from_epoll(fly_event *event)
 int fly_event_dispatch(fly_core *core)
 {
     fly_event *ev;
-    qHead *head = core->fly_reg_queue;
+    qHead *head = core->fly_io_queue;
     if (head == NULL) {
         printf("queue head error.\n");
         return -1;
@@ -261,14 +270,11 @@ int fly_event_dispatch(fly_core *core)
         epoll_data_t data;  //User data variable 
       };
     */
+    //printf("nfds: %d\n",nfds);
     for (int i = 0; i < nfds; i++) {
         int what = core->ep_info->events[i].events;
-        /*
-            there has a problem:
-            before epoll_ctl,we get the event by fly_pop_queue,so we can't get event 
-            from reg queue.
-        */
-        if (ev = fly_use_fd_find_event(core->ep_info->events[i].data.fd, head) == NULL) {
+
+        if ((ev = fly_use_fd_find_event(core->ep_info->events[i].data.fd, head)) == NULL) {
                 printf("fly_use_fd_find_event return NULL.\n");
                 return -1;
         }
@@ -280,7 +286,7 @@ int fly_event_dispatch(fly_core *core)
             */            
             if (fly_event_add(ev) != 1) {
                 //if error,ignore it.
-                printf("event add to queue error.\n");
+                //printf("event add to queue error.\n");
                 continue;
             }
         } else if (what & EPOLLOUT) {
@@ -289,7 +295,7 @@ int fly_event_dispatch(fly_core *core)
               add to active queue.
             */
             if (fly_event_add(ev) != 1) {
-                printf("event add to queue error.\n");
+                //printf("event add to queue error.\n");
                 continue;
             }
         } else {
@@ -341,8 +347,22 @@ int fly_process_active(fly_core *core)
             printf("ev is NULL.\n");
             continue;
         } 
+        printf("call evevnt's callback.\n");
         (*ev->callback)(ev->fd,ev->arg);
+        /*
+            todo: should support the persist event.
+            1.if persist event,just remove from active queue.
+            2.if not persist,remove from active queue and I/O queue.
+        */
+        if ((fly_delete_queue(core->fly_active_queue, ev) != 1) || fly_delete_queue(core->fly_io_queue, ev) != 1) {
+            printf("remove ele from active queue/io queue error.\n");
+            return -1;
+        } else {
+            printf("remove unpersist event successfully.\n");
+        }
+
     }
+
 
     return 0;
 }
@@ -351,6 +371,10 @@ void fifo_read()
 {
     printf("fifo_read: is here.\n");
 }
+
+/*
+
+test code.
 
 void main() 
 {
@@ -368,13 +392,13 @@ void main()
         printf("fly_core_init error.\n");
         return;
     }
-    /*
-    event = malloc(sizeof(struct fly_eventt));
-    if (event == NULL) {
-        printf(malloc error.\n);
-        return;
-    }
-    */
+    
+    //event = malloc(sizeof(struct fly_eventt));
+    //if (event == NULL) {
+    //    printf(malloc error.\n);
+    //    return;
+    //}
+    
 
     if (fly_event_set(fds[0], fifo_read, &event, FLY_EVENT_READ, &event, core) == -1) {
         printf("fly_event_set error.\n");
@@ -392,6 +416,7 @@ void main()
     fly_core_cycle(core);
     return;
 }
+*/
 
 
 
