@@ -105,8 +105,6 @@ int fly_event_add(fly_event *ev)
     return ret;
 }
 
-//todo: 1.make fly_queue support delete ele anywhere!
-//      2.should del ele at epoll too
 int fly_event_del(fly_event *ev) 
 {
     if (ev == NULL) {
@@ -194,13 +192,17 @@ int fly_event_add_to_epoll(fly_core *core)
         	if (event->flags & FLY_EVENT_READ) {
         		op = EPOLL_CTL_ADD;
         	    epev.data.fd = event->fd;
-        	    epev.events = EPOLLIN; //just care about this event's read event
+        	    epev.events = EPOLLIN | EPOLLET; //just care about this event's read event
         	} else if (event->flags & FLY_EVENT_WRITE) {
         		op = EPOLL_CTL_ADD;
         		epev.data.fd = event->fd;
-        		epev.events = EPOLLOUT; //just care about this event's write event
+        		epev.events = EPOLLOUT | EPOLLET; //just care about this event's write event
         	}
-            //we use the default LT for epoll. 
+            /* 
+                LT: events will notify us when there has data to read or write.
+                ET: events only notify us when the data become readable from unreadable or 
+                    writeable from unwriteable
+            */
             printf("epoll_fd: %d, op: %d, fd: %d epev.data.fd: %d, epev.events: %d\n",core->ep_info->epoll_fd, op, event->fd, epev.data.fd, epev.events);
         	if (epoll_ctl(core->ep_info->epoll_fd, op, event->fd, &epev) == -1) {
         		perror("epoll_ctl error.\n");
@@ -352,12 +354,13 @@ int fly_process_active(fly_core *core)
         /*
             todo: should support the persist event.
             1.if persist event,just remove from active queue.
-            2.if not persist,remove from active queue and I/O queue.
+            2.if not persist,remove from active queue and I/O queue and use epoll_ctl remove it from epoll .
         */
-        if ((fly_delete_queue(core->fly_active_queue, ev) != 1) || fly_delete_queue(core->fly_io_queue, ev) != 1) {
+        if ((fly_delete_queue(core->fly_active_queue, ev) != 1) /*|| fly_delete_queue(core->fly_io_queue, ev) != 1*/) {
             printf("remove ele from active queue/io queue error.\n");
             return -1;
         } else {
+            ev->status = FLY_LIST_ACTIVE; //if not set this, after delete event at queue,next cycle can't add this event to true queue.
             printf("remove unpersist event successfully.\n");
         }
 
@@ -367,23 +370,91 @@ int fly_process_active(fly_core *core)
     return 0;
 }
 
+
+/*
+//Below is test code.
+static int fds[2];
+
 void fifo_read() 
 {
     printf("fifo_read: is here.\n");
+    char *buf = malloc(10);
+
+    if (buf == NULL) {
+        printf("malloc error.\n");
+        return;
+    }
+
+    memset(buf,'\0',strlen(buf));
+
+    int n = 0, nread = 0;
+
+    if (fds[0] == NULL) {
+        printf(" fds[0] is null.\n");
+        return;
+    }
+
+    //
+      because the epoll mode is ET, so we should make sure that read all the data that we can read
+      from the read buffer.
+      for system method read,the return value:
+      1.ret < 0, and set the errno: if errno == EAGAIN, means no data to read.if errno is others,always means error happen.
+      2.ret = 0: mean the file at the tail and no data for reading
+      3.ret > 0: the bytes that we have readed
+    //
+    while (1) {
+        nread = read(fds[0], buf + nread, 10 - nread);
+        
+        if (nread < 0) {
+            if (errno == EAGAIN) {
+                //nread < 0 and errno = EAGAIN means that the read buffer has no data to read,
+                //we just mark it as read successfully and break this while loop.
+                break;
+            } else {
+                return;
+            }
+        } else if (nread == 0) {
+            //it means that the file is at tail or there is no data for reading.
+            break;
+        } else {
+            //there is data has been readed.
+            n = n + nread;
+            if (n == 10) {
+                break;
+            } else {
+                continue;
+            }
+        }
+    }
+
+    printf("buf: %s\n",buf);
 }
 
-/*
-
-test code.
 
 void main() 
 {
     fly_event event;
-    static int fds[2];
+    int flag1 = 0, flag2 = 0;
 
     //epoll have not support file's fd and directory's fd
     if (pipe(fds)) {
         perror("create pipe error.\n");
+        return;
+    }
+    
+    flag1 = fcntl(fds[0], F_GETFL, 0);
+    flag2 = fcntl(fds[1], F_GETFL, 0);
+
+    flag1 |= O_NONBLOCK;
+    flag2 |= O_NONBLOCK;
+
+    if(fcntl(fds[0], F_SETFL, flag1) < 0) {
+        perror("fcntl error.\n");
+        return;
+    }
+
+    if(fcntl(fds[1], F_SETFL, flag2) < 0) {
+        perror("fcntl error.\n");
         return;
     }
 
@@ -400,7 +471,7 @@ void main()
     //}
     
 
-    if (fly_event_set(fds[0], fifo_read, &event, FLY_EVENT_READ, &event, core) == -1) {
+    if (fly_event_set(fds[0], fifo_read, &event, FLY_EVENT_READ, &fds[0], core) == -1) {
         printf("fly_event_set error.\n");
         return;
     }
@@ -409,7 +480,7 @@ void main()
     
     //test code: write
     //we just only write fds[1] but can't write fds[0]
-    if (write(fds[1], "c", 1) != 1) {
+    if (write(fds[1], "abcdefghij", 10) != 10) {
         perror("write error.\n");
     }
 
