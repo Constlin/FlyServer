@@ -9,3 +9,6 @@ the reason for choose multi-threaded + epoll is that the service is process many
 
 March 24 2017 
 upload fly_event.c/.h fly_queue.c/.h, only support simple I/O event using linux's epoll. need to compile and debug!
+
+April 5 2017
+move all .c .h filed to the dir /Dev, developing in this dir temporarily.
