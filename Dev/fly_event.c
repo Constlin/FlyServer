@@ -10,6 +10,7 @@ Author: Andrew lin
 #include <fcntl.h>
 #include <errno.h>
 #include "fly_event.h"
+#include "fly_util.h"
 
 fly_core *fly_core_init()
 {
@@ -23,6 +24,8 @@ fly_core *fly_core_init()
     core->fly_reg_queue = fly_init_queue();
     core->fly_active_queue = fly_init_queue();
     core->fly_io_queue = fly_init_queue();
+    core->fly_timeout_minheap = fly_minheap_init(core->fly_timeout_minheap);
+
     if (core->fly_reg_queue == NULL || core->fly_active_queue == NULL || core->fly_io_queue == NULL) {
 	    return NULL;
     }
@@ -48,8 +51,9 @@ fly_core *fly_core_init()
     return core;
 }
 
-int fly_event_set(int fd,void (*callback)(int,void *),fly_event *ev,int flags,void *arg,fly_core *core)
+int fly_event_set(int fd, void (*callback)(int,void *), fly_event *ev, int flags, void *arg, fly_core *core, struct timeval *tv)
 {
+    //If timeout event, the tv should me sec level. It means that the tv_sec shuold > 0.
     if (callback == NULL || ev == NULL  || core == NULL) {
         if (callback == NULL) {
             printf("callback null.\n");
@@ -66,7 +70,16 @@ int fly_event_set(int fd,void (*callback)(int,void *),fly_event *ev,int flags,vo
     ev->flags = flags;
     ev->arg = arg;
     ev->core = core;
-    ev->status = FLY_LIST_REG;
+    //the time add to the event is user set time add the current MONOTONIC time.
+    if (tv != NULL) {
+        fly_gettime(&ev->current_time_cache);
+        fly_time_plus(tv, tv, &ev->current_time_cache);
+    } 
+
+    ev->time = tv == NULL? NULL : tv;
+    printf("plus ret, ev->time: %d. current_time_cache: %d.\n", ev->time->tv_sec, ev->current_time_cache.tv_sec);
+    ev->status = tv == NULL? FLY_LIST_REG : FLY_MINHEAP_REG;
+    
     return 0;
 }
 
@@ -75,34 +88,80 @@ int fly_event_add(fly_event *ev)
     if (ev == NULL) {
     	return -1;
     }
+    struct timeval tv_zero;
+    tv_zero.tv_sec = 0;
+    tv_zero.tv_usec = 0;
+    int ret_compare = fly_comparetime(ev->time, &tv_zero);
+    if (ret_compare != 1) {
+        //ev->time == 0 means it is not a timeout event.
+        int ret = 0;
+        if (ev->status & FLY_LIST_REG) {
+            ret = fly_insert_queue(ev->core->fly_reg_queue, ev) == -1? -2 : 0;
+            switch (ret) {      
+                case  0:
+                    ev->status = FLY_LIST_ACTIVE;
+                    break;
+                case -2:
+                default:
+                    break;
+            }
+            
+        } else if (ev->status & FLY_LIST_ACTIVE) {
+            ret = fly_insert_queue(ev->core->fly_active_queue, ev) == -1? -2 : 0;
+            switch (ret) {      
+                case  0:
+                    ev->status = FLY_LIST_PROCESS;
+                    break;
+                case -2:
+                default:
+                    break;
+            }
+        } else {
+            ret = -3;
+        }
+        
+        return ret;
+    } else if (ret_compare == 1) {
+        //timeout event
+        /*
+        struct timeval tv;
+        //get the current time.
+        if (fly_gettime(&tv) != 0) {
+            printf("gettime error.\n");
+            return -1;
+        }
+        add the current time and the user setting timeout time, then add it to min-heap.       
+        (ev->time)->tv_sec += tv.tv_sec;
+        (ev->time)->tv_usec += tv.tv_usec;
+        */
+        int ret = 0;
+        if (ev->status & FLY_MINHEAP_REG) {
+            //add timeout event to minheap and set the status to FLY_LIST_ACTIVE.
+            printf("the timeevent add to fly_minheap's point is: %d.\n", ev);
+            if (fly_minheap_push(ev->core->fly_timeout_minheap, ev) < 0) {
+                printf("add event to fly_minheap error.\n");
+                return -1;
+            }
+            ev->status = FLY_LIST_ACTIVE;
+        } else if (ev->status & FLY_LIST_ACTIVE) {
+            printf("the timeevent add to fly_active_queue's point is: %p.\n", ev);
+            ret = fly_insert_queue(ev->core->fly_active_queue, ev) == -1?-2:0;
+            switch (ret) {      
+                case  0:
+                    ev->status = FLY_LIST_PROCESS;
+                    break;
+                case -2:
+                default:
+                    break;
+            }
+        } else {
+            ret = -3;
+        }
+        
+        return ret;  
+    } 
 
-    int ret = 0;
-    if (ev->status & FLY_LIST_REG) {
-    	ret = fly_insert_queue(ev->core->fly_reg_queue,ev) == -1?-2:0;
-    	switch (ret) {   	
-    		case  0:
-    		    ev->status = FLY_LIST_ACTIVE;
-    		 	break;
-    		case -2:
-    		default:
-    	    	break;
-    	}
-    	
-    } else if (ev->status & FLY_LIST_ACTIVE) {
-    	ret = fly_insert_queue(ev->core->fly_active_queue,ev) == -1?-2:0;
-    	switch (ret) {    	
-    		case  0:
-    		    ev->status = FLY_LIST_PROCESS;
-    		 	break;
-    		case -2:
-    		default:
-    	    	break;
-    	}
-    } else {
-    	ret = -3;
-    }
-    
-    return ret;
+    return -1;
 }
 
 int fly_event_del(fly_event *ev) 
@@ -141,17 +200,18 @@ void fly_core_cycle(fly_core *core)
             //printf("no events add to epoll.\n");
         }
         
-        if (fly_queue_empty(core->fly_io_queue) != 1) {
+        //if the i/o event has added to the epoll or there is timeout exist in minheap, we come in fly_event_dispatch.
+        if (fly_queue_empty(core->fly_io_queue) != 1 || fly_minheap_size(core->fly_timeout_minheap) > 0) {
             if (fly_event_dispatch(core) != 0) {
                 return;
             }
         } else {
             //printf("no events add to epoll.\n");
         }
-        
-    
+
+        fly_process_timeout(core);
+           
         if (fly_queue_empty(core->fly_active_queue) != 1) {
-            //todo: process the active events in active queue.
             printf("active queue is not empty, process active event.\n");
             fly_process_active(core);
         }
@@ -240,13 +300,18 @@ int fly_event_remove_from_epoll(fly_event *event)
 int fly_event_dispatch(fly_core *core)
 {
     fly_event *ev;
+    struct timeval *tv;
+    long timeout;
     qHead *head = core->fly_io_queue;
     if (head == NULL) {
         printf("queue head error.\n");
         return -1;
     }
-
-    int nfds = epoll_wait(core->ep_info->epoll_fd, core->ep_info->events, core->ep_info->nevents, 200);
+    //get the min-heap's top event's timeout, remember after this
+    //operation this event is still in the min-heap.
+    timeout = fly_event_get_timeout(core);
+    
+    int nfds = epoll_wait(core->ep_info->epoll_fd, core->ep_info->events, core->ep_info->nevents, timeout);
 
     if (nfds < 0) {
         if (errno != EINTR) {
@@ -256,8 +321,6 @@ int fly_event_dispatch(fly_core *core)
 
         return 0;
     }
-    	
-
     /*
       in linux epoll:
       typedef union epoll_data {  
@@ -272,7 +335,7 @@ int fly_event_dispatch(fly_core *core)
         epoll_data_t data;  //User data variable 
       };
     */
-    //printf("nfds: %d\n",nfds);
+    printf("nfds: %d\n",nfds);
     for (int i = 0; i < nfds; i++) {
         int what = core->ep_info->events[i].events;
 
@@ -286,7 +349,7 @@ int fly_event_dispatch(fly_core *core)
               I/O became readable,
               add active to active queue.
             */            
-            if (fly_event_add(ev) != 1) {
+            if (fly_event_add(ev) != 0) {
                 //if error,ignore it.
                 //printf("event add to queue error.\n");
                 continue;
@@ -296,7 +359,7 @@ int fly_event_dispatch(fly_core *core)
               i/o become writeable,
               add to active queue.
             */
-            if (fly_event_add(ev) != 1) {
+            if (fly_event_add(ev) != 0) {
                 //printf("event add to queue error.\n");
                 continue;
             }
@@ -337,6 +400,9 @@ fly_event *fly_use_fd_find_event(int fd, qHead head)
 int fly_process_active(fly_core *core)
 {
     fly_event *ev;
+    struct timeval tv;
+    tv.tv_sec = 0;
+    tv.tv_usec = 0;
     if (core == NULL) {
         printf("core is NULL.\n");
         return -1;
@@ -345,24 +411,31 @@ int fly_process_active(fly_core *core)
     qPtr qp = NULL;
     for (qp = core->fly_active_queue->first; qp != NULL; qp = qp->next) {
         ev = qp->ele;
-        if ( ev == NULL) {
+        if (ev == NULL) {
             printf("ev is NULL.\n");
             continue;
         } 
-        printf("call evevnt's callback.\n");
+        printf("the timeout which has been called's pointer is: %p.\n", ev);
         (*ev->callback)(ev->fd,ev->arg);
         /*
             todo: should support the persist event.
             1.if persist event,just remove from active queue.
             2.if not persist,remove from active queue and I/O queue and use epoll_ctl remove it from epoll .
         */
-        if ((fly_delete_queue(core->fly_active_queue, ev) != 1) /*|| fly_delete_queue(core->fly_io_queue, ev) != 1*/) {
+        if (fly_comparetime(ev->time, &tv) == 1) {
+            //timeout event.
+            if (fly_minheap_pop(core->fly_timeout_minheap) != 1) {
+                printf("fly_minheap_pop error.\n");
+                return -1;
+            }
+        } else if ((fly_delete_queue(core->fly_active_queue, ev) != 1) /*|| fly_delete_queue(core->fly_io_queue, ev) != 1*/) {
             printf("remove ele from active queue/io queue error.\n");
             return -1;
         } else {
             ev->status = FLY_LIST_ACTIVE; //if not set this, after delete event at queue,next cycle can't add this event to true queue.
             printf("remove unpersist event successfully.\n");
         }
+        
 
     }
 
@@ -370,9 +443,58 @@ int fly_process_active(fly_core *core)
     return 0;
 }
 
+long fly_event_get_timeout(fly_core *core)
+{
+    long timeout;
+    struct timeval tv;
+    fly_event_p ev = fly_minheap_top(core->fly_timeout_minheap);
+    printf("the timeout's pointer from method fly_minheap_top is: %p.\n", ev);
 
+    if (fly_minheap_size(core->fly_timeout_minheap) > 0) {      
+        tv = *(ev->time);
+        fly_time_sub(&tv, &tv, &ev->current_time_cache);
+        timeout = fly_transform_tv_to_ms(&tv);
+    } else {
+        timeout = 200;
+    }
+
+    return timeout;
+}
+
+int fly_process_timeout(fly_core *core)
+{
+    //if there is timeout event in the min-heap, we can sure there
+    //is timeout event happen when we do fly_process_timeout method.
+    if (fly_minheap_size(core->fly_timeout_minheap) <= 0) {
+        return -1;
+    }
+
+    fly_event_p event = fly_minheap_top(core->fly_timeout_minheap);
+    printf("the timeout's pointer from method fly_minheap_top is: %p.\n", event);
+    if (event == NULL) {
+        printf("fly_minheap_top return NULL.\n");
+        return -1;
+    }
+
+    //add this timeout event to active queue.
+    if (fly_event_add(event) != 0) {
+        printf("add timeout event to active queue error.\n");
+        return -1;
+    }
+
+    //remove this timeout event from min-heap should after we process this timeout event.
+    return 1;    
+}
+
+
+
+
+
+
+
+
+//Below is test code for I/O event.
 /*
-//Below is test code.
 static int fds[2];
 
 void fifo_read() 
@@ -395,12 +517,12 @@ void fifo_read()
     }
 
     //
-      because the epoll mode is ET, so we should make sure that read all the data that we can read
-      from the read buffer.
-      for system method read,the return value:
-      1.ret < 0, and set the errno: if errno == EAGAIN, means no data to read.if errno is others,always means error happen.
-      2.ret = 0: mean the file at the tail and no data for reading
-      3.ret > 0: the bytes that we have readed
+    //  because the epoll mode is ET, so we should make sure that read all the data that we can read
+    //  from the read buffer.
+    //  for system method read,the return value:
+    //  1.ret < 0, and set the errno: if errno == EAGAIN, means no data to read.if errno is others,always means error happen.
+    //  2.ret = 0: mean the file at the tail and no data for reading
+    //  3.ret > 0: the bytes that we have readed
     //
     while (1) {
         nread = read(fds[0], buf + nread, 10 - nread);
@@ -464,14 +586,8 @@ void main()
         return;
     }
     
-    //event = malloc(sizeof(struct fly_eventt));
-    //if (event == NULL) {
-    //    printf(malloc error.\n);
-    //    return;
-    //}
-    
-
-    if (fly_event_set(fds[0], fifo_read, &event, FLY_EVENT_READ, &fds[0], core) == -1) {
+    //should we malloc for the event?
+    if (fly_event_set(fds[0], fifo_read, &event, FLY_EVENT_READ, &fds[0], core, NULL) == -1) {
         printf("fly_event_set error.\n");
         return;
     }
@@ -488,6 +604,42 @@ void main()
     return;
 }
 */
+
+
+
+
+//Below is test code for time event.
+void time_out()
+{
+    printf("the time is out.\n");
+}
+
+void main()
+{
+    fly_event event;
+
+    fly_core *core = fly_core_init();
+    if (core == NULL) {
+        printf("fly_core_init error.\n");
+        return;
+    }
+    
+    struct timeval tv;
+    tv.tv_sec = 5;
+    tv.tv_usec = 0;
+    //set the timeout event will happen after 5 seconds.
+    if (fly_event_set(-1, time_out, &event, FLY_EVENT_READ, NULL, core, &tv) == -1) {
+        printf("fly_event_set error.\n");
+        return;
+    }
+
+    fly_event_add(&event);
+
+    fly_core_cycle(core);
+    return;
+}
+//test code for time event end.
+
 
 
 
