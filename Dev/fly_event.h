@@ -6,11 +6,14 @@ Author: Andrew lin
 #ifndef _FLY_EVENT_H
 #define _FLY_EVENT_H
 
+#include <sys/time.h>
 #include "fly_queue.h"
+#include "fly_minheap.h"
 
 #define FLY_LIST_REG 0x01
 #define FLY_LIST_ACTIVE 0x02
 #define FLY_LIST_PROCESS 0x04
+#define FLY_MINHEAP_REG 0X08
 
 #define FLY_EVENT_READ 0x01
 #define FLY_EVENT_WRITE 0x02
@@ -21,14 +24,24 @@ Author: Andrew lin
 
 typedef struct fly_event fly_event;
 
+typedef struct fly_event* fly_event_p;
+
 typedef struct fly_core fly_core;
+
+typedef struct fly_core* fly_core_p;
 
 struct fly_event {
     int fd;
     /*
-        the thing that the event take care. 
-	FLY_EVENT_READ mean I/O read event,
-	FLY_EVENT_WRITE mean I/O write event.
+      if set this value, it means this event is a timeout event, and the value is the time.
+      else it should be 0;
+    */
+    struct timeval *time;
+    struct timeval current_time_cache;
+    /*
+      the thing that the event take care. 
+	    FLY_EVENT_READ mean I/O read event,
+	    FLY_EVENT_WRITE mean I/O write event.
     */
     int flags;
     /*
@@ -36,14 +49,9 @@ struct fly_event {
       FLY_LIST_REG mean need to add in registered queue,      
       FLY_LIST_ACTIVE mean it's in registered queue and need to add in active queue,
       FLY_LIST_PROCESS mean it's in active queue and wait for processing.
+      FLY_MINHEAP_REG mean it's a timeout event and need to add to minheap.
     */
     int status;
-    /*
-      FLY_CTL_ADD mean this event need to  added to epoll,      
-      FLY_CTL_DEL mean this event need to modify from epoll,
-      FLY_CTL_MOD mean this event need to del from epoll,
-    */
-    int do_what;
     /*
       para of callback
     */
@@ -79,12 +87,16 @@ struct fly_core {
       store the information about epoll
     */
     struct epoll_info *ep_info;
+    /*
+      store the timeout event that have not added into the epoll.
+    */
+    struct fly_minheap *fly_timeout_minheap;
 };
 
 
 fly_core *fly_core_init();
 
-int fly_event_set(int fd,void (*callback)(int,void *),fly_event *ev,int flags,void *arg,fly_core *core);
+int fly_event_set(int fd, void (*callback)(int,void *), fly_event *ev, int flags, void *arg, fly_core *core, struct timeval *tv);
 
 int fly_event_add(fly_event *ev);
 
@@ -111,9 +123,16 @@ int fly_event_dispatch(fly_core *core);
 int fly_process_active(fly_core *core);
 
 //use fd to find event in reg queue.
-fly_event *fly_use_fd_find_event(int fd,qHead head);
+fly_event *fly_use_fd_find_event(int fd, qHead head);
 
-//test method
+long fly_event_get_timeout(fly_core *core);
+
+int fly_process_timeout(fly_core *core);
+
+//test method for I/O event
 void fifo_read();
+
+//test method for time event
+void time_out();
 
 #endif
