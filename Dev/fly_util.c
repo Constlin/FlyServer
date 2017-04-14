@@ -61,7 +61,7 @@ int fly_comparetime(struct timeval *tv1, struct timeval *tv2)
     	printf("fly_comparetime tv1 tv2 is NULL.\n");
     	return -1;
     }
-
+    
     if (tv1->tv_sec > tv2->tv_sec) {
     	return 1; //tv1 > tv2
     } else if (tv1->tv_sec == tv2->tv_sec) {
@@ -75,7 +75,7 @@ int fly_comparetime(struct timeval *tv1, struct timeval *tv2)
     } else {
     	return 3; //tv1 < tv2
     }
-
+ 
     return -1;
 }
 

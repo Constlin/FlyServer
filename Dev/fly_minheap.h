@@ -65,6 +65,7 @@ int fly_minheap_search(fly_minheap_p ptr, fly_event_p event);
 
 int fly_minheap_set_top_null(fly_minheap_p ptr);
 
-void time_out();
+//make fly_minheap's time decreace top's time to make sure that epoll_wait get true timeout.
+int fly_minheap_time_adjust(fly_minheap_p ptr);
 
 #endif

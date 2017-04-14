@@ -72,8 +72,12 @@ int fly_event_set(int fd, void (*callback)(int,void *), fly_event *ev, int flags
     ev->core = core;
     //the time add to the event is user set time add the current MONOTONIC time.
     if (tv != NULL) {
+        ev->user_settime.tv_sec = tv->tv_sec;
+        ev->user_settime.tv_usec = tv->tv_usec;
         fly_gettime(&ev->current_time_cache);
+        printf("user set tv_sec: %d.\n", tv->tv_sec);
         fly_time_plus(tv, tv, &ev->current_time_cache);
+        printf("ret_tv_sec: %d, ret_tv_usec: %d, cut_tv_sec: %d.\n", tv->tv_sec, tv->tv_usec, ev->current_time_cache.tv_sec);
     } 
 
     ev->time = tv == NULL? NULL : tv;
@@ -136,14 +140,12 @@ int fly_event_add(fly_event *ev)
         int ret = 0;
         if (ev->status & FLY_MINHEAP_REG) {
             //add timeout event to minheap and set the status to FLY_LIST_ACTIVE.
-            printf("the timeevent add to fly_minheap's point is: %d.\n", ev);
             if (fly_minheap_push(ev->core->fly_timeout_minheap, ev) < 0) {
                 printf("add event to fly_minheap error.\n");
                 return -1;
             }
             ev->status = FLY_LIST_ACTIVE;
         } else if (ev->status & FLY_LIST_ACTIVE) {
-            printf("the timeevent add to fly_active_queue's point is: %p.\n", ev);
             ret = fly_insert_queue(ev->core->fly_active_queue, ev) == -1?-2:0;
             switch (ret) {      
                 case  0:
@@ -153,13 +155,16 @@ int fly_event_add(fly_event *ev)
                 default:
                     break;
             }
-        } else {
+        } else if (ev->status & FLY_LIST_PROCESS) {
+            printf("error. the event had been processed.\n");
             ret = -3;
+        } else {
+            printf("error. uncertain event's status.\n");
+            return -4;
         }
         
         return ret;  
     } 
-
     return -1;
 }
 
@@ -309,9 +314,9 @@ int fly_event_dispatch(fly_core *core)
     //get the min-heap's top event's timeout, remember after this
     //operation this event is still in the min-heap.
     timeout = fly_event_get_timeout(core);
-    
+    printf("the timeout is: %d.\n", timeout);
     int nfds = epoll_wait(core->ep_info->epoll_fd, core->ep_info->events, core->ep_info->nevents, timeout);
-
+    printf("epoll_wait over. nfds: %d, timeout: %d.\n", nfds, timeout);
     if (nfds < 0) {
         if (errno != EINTR) {
             perror("epoll wait error.\n");
@@ -414,7 +419,6 @@ int fly_process_active(fly_core *core)
             printf("ev is NULL.\n");
             continue;
         } 
-        printf("the timeout which has been called's pointer is: %p.\n", ev);
         (*ev->callback)(ev->fd,ev->arg);
         /*
             todo: should support the persist event.
@@ -430,6 +434,12 @@ int fly_process_active(fly_core *core)
             } else {
                 ev->status = FLY_LIST_ACTIVE; 
                 printf("remove unpersist event successfully.\n");
+            }
+
+            //make fly_miheap's event's time decrease fly_minheap's top event's time.
+            if (fly_minheap_time_adjust(core->fly_timeout_minheap) != 1) {
+                printf("[ERROR]. fly_minheap_time_adjust error.\n");
+                return -1;
             }
 
             if (fly_minheap_pop(core->fly_timeout_minheap) != 1) {
@@ -460,13 +470,17 @@ long fly_event_get_timeout(fly_core *core)
     long timeout;
     struct timeval tv;
     fly_event_p ev = fly_minheap_top(core->fly_timeout_minheap);
-
+    if (ev != NULL) {
+        printf("test log. ev's pointer: %p. tv_sec: %d, tv_usec: %d.\n", ev, ev->time->tv_sec, ev->time->tv_usec);
+    }
+    
     if (fly_minheap_size(core->fly_timeout_minheap) > 0) {      
         tv = *(ev->time);
         fly_time_sub(&tv, &tv, &ev->current_time_cache);
         timeout = fly_transform_tv_to_ms(&tv);
+        printf("timeout: %d, tv_sec: %d.\n", timeout, tv.tv_sec);
     } else {
-        timeout = 200;
+        timeout = 2000;
     }
 
     return timeout;
@@ -505,7 +519,7 @@ int fly_process_timeout(fly_core *core)
 
 
 //Below is test code for I/O event.
-
+/*
 static int fds[2];
 
 void fifo_read() 
@@ -614,7 +628,7 @@ void main()
     fly_core_cycle(core);
     return;
 }
-
+*/
 
 
 
@@ -652,6 +666,147 @@ void main()
 }
 //test code for time event end.
 */
+
+
+
+void time_out()
+{
+    printf("the time is out!!!!!!!!!!!!!!!!!!!!!!\n");
+}
+
+static int fds[2];
+
+void fifo_read() 
+{
+    printf("fifo_read: is here.\n");
+    char *buf = malloc(10);
+
+    if (buf == NULL) {
+        printf("malloc error.\n");
+        return;
+    }
+
+    memset(buf,'\0',strlen(buf));
+
+    int n = 0, nread = 0;
+
+    if (fds[0] == NULL) {
+        printf(" fds[0] is null.\n");
+        return;
+    }
+
+    //
+    //  because the epoll mode is ET, so we should make sure that read all the data that we can read
+    //  from the read buffer.
+    //  for system method read,the return value:
+    //  1.ret < 0, and set the errno: if errno == EAGAIN, means no data to read.if errno is others,always means error happen.
+    //  2.ret = 0: mean the file at the tail and no data for reading
+    //  3.ret > 0: the bytes that we have readed
+    //
+    while (1) {
+        nread = read(fds[0], buf + nread, 10 - nread);
+        
+        if (nread < 0) {
+            if (errno == EAGAIN) {
+                //nread < 0 and errno = EAGAIN means that the read buffer has no data to read,
+                //we just mark it as read successfully and break this while loop.
+                break;
+            } else {
+                return;
+            }
+        } else if (nread == 0) {
+            //it means that the file is at tail or there is no data for reading.
+            break;
+        } else {
+            //there is data has been readed.
+            n = n + nread;
+            if (n == 10) {
+                break;
+            } else {
+                continue;
+            }
+        }
+    }
+
+    printf("buf: %s\n",buf);
+}
+
+
+void main() 
+{
+    fly_event event;
+    fly_event timeout_event;
+    fly_event conflict_event;
+
+    int flag1 = 0, flag2 = 0;
+
+    //epoll have not support file's fd and directory's fd
+    if (pipe(fds)) {
+        perror("create pipe error.\n");
+        return;
+    }
+    
+    flag1 = fcntl(fds[0], F_GETFL, 0);
+    flag2 = fcntl(fds[1], F_GETFL, 0);
+
+    flag1 |= O_NONBLOCK;
+    flag2 |= O_NONBLOCK;
+
+    if(fcntl(fds[0], F_SETFL, flag1) < 0) {
+        perror("fcntl error.\n");
+        return;
+    }
+
+    if(fcntl(fds[1], F_SETFL, flag2) < 0) {
+        perror("fcntl error.\n");
+        return;
+    }
+
+    fly_core *core = fly_core_init();
+    if (core == NULL) {
+        printf("fly_core_init error.\n");
+        return;
+    }
+    
+    //should we malloc for the event?
+    if (fly_event_set(fds[0], fifo_read, &event, FLY_EVENT_READ, &fds[0], core, NULL) == -1) {
+        printf("fly_event_set error.\n");
+        return;
+    }
+    
+    struct timeval tv;
+    tv.tv_sec = 5;
+    tv.tv_usec = 0;
+    //set the timeout event will happen after 5 seconds.
+    if (fly_event_set(-1, time_out, &timeout_event, FLY_EVENT_READ, NULL, core, &tv) == -1) {
+        printf("fly_event_set error.\n");
+        return;
+    }
+    
+    struct timeval conflict_tv;
+    conflict_tv.tv_sec = 5;
+    conflict_tv.tv_usec = 0;
+    if (fly_event_set(-1, time_out, &conflict_event, FLY_EVENT_READ, NULL, core, &conflict_tv) == -1) {
+        printf("fly_event_set error.\n");
+        return;
+    }
+    fly_event_add(&timeout_event);
+
+    fly_event_add(&conflict_event);
+    //can't add one event twice! it will cause the event's status uncertain!
+    //fly_event_add(&timeout_event);
+
+    fly_event_add(&event);
+    
+    //test code: write
+    //we just only write fds[1] but can't write fds[0]
+    //if (write(fds[1], "abcdefghij", 10) != 10) {
+    //    perror("write error.\n");
+    //}
+
+    fly_core_cycle(core);
+    return;
+}
 
 
 

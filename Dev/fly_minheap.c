@@ -78,6 +78,7 @@ int fly_minheap_insert(fly_minheap_p ptr, fly_event_p event, int index)
     }
   
     ++ptr->fly_minheap_size;
+    printf("[Debug]. add a timeout event: %p to fly_minheap(size: %d) success.\n", event, ptr->fly_minheap_size);
     return 1;   
 }
 
@@ -87,7 +88,7 @@ int fly_minheap_push(fly_minheap_p ptr, fly_event_p event)
 		printf("fly_minheap_push error.\n");
 		return -1;
 	}
-    
+ 
     if (fly_minheap_search(ptr, event) == 1) {
     	//the event's time is conflict, just return -1.
         printf("the event's time is conflict.\n");
@@ -291,7 +292,7 @@ int fly_minheap_search(fly_minheap_p ptr, fly_event_p event)
 	}
 
 	for (int i = 0; i < ptr->fly_minheap_size; i++) {
-		if (fly_comparetime(&(ptr->fly_event[i])->time, &event->time) == 2) {
+		if (fly_comparetime((ptr->fly_event[i])->time, event->time) == 2) {
 			//time is conflict.
             return 1;
 		}
@@ -308,6 +309,25 @@ int fly_minheap_set_top_null(fly_minheap_p ptr)
 	}
 
 	(ptr->fly_event)[0] = NULL;
+	return 1;
+}
+
+int fly_minheap_time_adjust(fly_minheap_p ptr)
+{
+	if (ptr->fly_minheap_size < 1) {
+		printf("[ERROR]. fly_minheap's size < 1.\n");
+		return -1;
+	}
+
+	fly_event_p top_event = fly_minheap_top(ptr);
+	for (int i = 0; i < ptr->fly_minheap_size - 1; ++i) {
+        fly_time_sub((ptr->fly_event)[i+1]->time, (ptr->fly_event)[i+1]->time, &(top_event->user_settime));
+	}
+    printf("test log. fly_minheap's size: %d.\n", ptr->fly_minheap_size);
+	for(int i = 0; i < ptr->fly_minheap_size; ++i) {
+		printf("event's ptr: %p, event's time ptr: %p, test log. tv_sec: %d, tv_usec: %d.\n", (ptr->fly_event)[i], (ptr->fly_event)[i]->time, (ptr->fly_event)[i]->time->tv_sec, (ptr->fly_event)[i]->time->tv_usec);
+	}
+
 	return 1;
 }
 
