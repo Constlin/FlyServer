@@ -77,7 +77,6 @@ int fly_event_set(int fd, void (*callback)(int,void *), fly_event *ev, int flags
     } 
 
     ev->time = tv == NULL? NULL : tv;
-    printf("plus ret, ev->time: %d. current_time_cache: %d.\n", ev->time->tv_sec, ev->current_time_cache.tv_sec);
     ev->status = tv == NULL? FLY_LIST_REG : FLY_MINHEAP_REG;
     
     return 0;
@@ -335,7 +334,7 @@ int fly_event_dispatch(fly_core *core)
         epoll_data_t data;  //User data variable 
       };
     */
-    printf("nfds: %d\n",nfds);
+
     for (int i = 0; i < nfds; i++) {
         int what = core->ep_info->events[i].events;
 
@@ -461,7 +460,6 @@ long fly_event_get_timeout(fly_core *core)
     long timeout;
     struct timeval tv;
     fly_event_p ev = fly_minheap_top(core->fly_timeout_minheap);
-    printf("the timeout's pointer from method fly_minheap_top is: %p.\n", ev);
 
     if (fly_minheap_size(core->fly_timeout_minheap) > 0) {      
         tv = *(ev->time);
@@ -483,7 +481,7 @@ int fly_process_timeout(fly_core *core)
     }
 
     fly_event_p event = fly_minheap_top(core->fly_timeout_minheap);
-    printf("the timeout's pointer from method fly_minheap_top is: %p.\n", event);
+    
     if (event == NULL) {
         printf("fly_minheap_top return NULL.\n");
         return -1;
@@ -507,7 +505,7 @@ int fly_process_timeout(fly_core *core)
 
 
 //Below is test code for I/O event.
-/*
+
 static int fds[2];
 
 void fifo_read() 
@@ -616,12 +614,13 @@ void main()
     fly_core_cycle(core);
     return;
 }
-*/
+
 
 
 
 
 //Below is test code for time event.
+/*
 void time_out()
 {
     printf("the time is out.\n");
@@ -652,6 +651,7 @@ void main()
     return;
 }
 //test code for time event end.
+*/
 
 
 
