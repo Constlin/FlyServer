@@ -118,6 +118,7 @@ fly_event_p fly_minheap_top(fly_minheap_p ptr)
 //todo: incomplete
 int fly_minheap_pop(fly_minheap_p ptr)
 {
+	printf("call fly_minheap_pop.\n");
 	if (fly_minheap_free_top(ptr) < 0) {
 		return -1;
 	}
@@ -175,8 +176,8 @@ int fly_minheap_top_adjust(fly_minheap_p ptr, int index)
 	}
 
 	if (fly_minheap_size(ptr) < 1) {
-		printf("in func fly_minheap_top_adjust: fly_minheap's size < 1.\n");
-		return -1;
+		printf("in func fly_minheap_top_adjust: fly_minheap's size < 1. No need to adjust.\n");
+		return 1;
 	} 
 
 	int parent_index = index;

@@ -423,17 +423,30 @@ int fly_process_active(fly_core *core)
             2.if not persist,remove from active queue and I/O queue and use epoll_ctl remove it from epoll .
         */
         if (fly_comparetime(ev->time, &tv) == 1) {
-            //timeout event.
+            //timeout event, we remove this timeevent both from fly_minheap
+            //and active queue.
+            if ((fly_delete_queue(core->fly_active_queue, ev) != 1)) {
+                printf("remove ele from active queue/io queue error.\n");
+                return -1;
+            } else {
+                ev->status = FLY_LIST_ACTIVE; 
+                printf("remove unpersist event successfully.\n");
+            }
+
             if (fly_minheap_pop(core->fly_timeout_minheap) != 1) {
                 printf("fly_minheap_pop error.\n");
                 return -1;
             }
+
         } else if ((fly_delete_queue(core->fly_active_queue, ev) != 1) /*|| fly_delete_queue(core->fly_io_queue, ev) != 1*/) {
+            
             printf("remove ele from active queue/io queue error.\n");
             return -1;
+
         } else {
             ev->status = FLY_LIST_ACTIVE; //if not set this, after delete event at queue,next cycle can't add this event to true queue.
             printf("remove unpersist event successfully.\n");
+
         }
         
 
