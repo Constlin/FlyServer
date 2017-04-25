@@ -22,4 +22,12 @@ void fly_switch(void **ptr1, void **ptr2);
 
 long fly_transform_tv_to_ms(struct timeval *tv);
 
+int fly_make_sockepair(int domain, int type, int protocol, int array[2]);
+
+int fly_set_nonblocking(int fd);
+
+int fly_set_closeonexec(int fd);
+
+int fly_close_fd(int fd);
+
 #endif

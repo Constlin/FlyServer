@@ -17,6 +17,8 @@ Author: Andrew lin
 
 #define FLY_EVENT_READ 0x01
 #define FLY_EVENT_WRITE 0x02
+#define FLY_EVENT_SIG 0x04
+#define FLY_EVENT_INTERNAL 0x08
 
 #define FLY_CTL_ADD 0x01
 #define FLY_CTL_DEL 0x02
@@ -45,7 +47,9 @@ struct fly_event {
     /*
       the thing that the event take care. 
 	    FLY_EVENT_READ mean I/O read event,
-	    FLY_EVENT_WRITE mean I/O write event.
+	    FLY_EVENT_WRITE mean I/O write event,
+      FLY_EVENT_SIG mean signal event,
+      FLY_EVENT_INTERNAL mean this is internal event.
     */
     int flags;
     /*
@@ -95,6 +99,21 @@ struct fly_core {
       store the timeout event that have not added into the epoll.
     */
     struct fly_minheap *fly_timeout_minheap;
+    /*
+      internal event used for adding signal to fly_core.
+    */
+    struct fly_event fly_evsig;
+    /*
+      socketpair used for adding signal to fly_core.
+      fly_socketpair[0] care read side,
+      fly_socketpair[1] care write side.
+    */  
+    int fly_socketpair[2];
+    /*
+      a hash table, we can use signal number to get the events from the hash table.
+    */
+    struct fly_hash *fly_hash;
+    
 };
 
 

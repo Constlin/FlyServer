@@ -8,6 +8,10 @@ author: Andrew lin
 
 int fly_gettime(struct timeval *tv)
 {
+    if (tv == NULL) {
+        return -1;
+    }
+
     struct timespec ts;
     
     if (clock_gettime(CLOCK_MONOTONIC, &ts) == -1) {
@@ -23,6 +27,10 @@ int fly_gettime(struct timeval *tv)
 
 void fly_time_plus(struct timeval *tv_ret, struct timeval *tv1, struct timeval *tv2)
 {
+    if (tv_ret == NULL || tv1 == NULL || tv2 == NULL) {
+        return -1;
+    }
+
 	tv_ret->tv_sec = tv1->tv_sec + tv2->tv_sec;
 	tv_ret->tv_usec = tv1->tv_usec + tv2->tv_usec;
 
@@ -36,6 +44,10 @@ void fly_time_plus(struct timeval *tv_ret, struct timeval *tv1, struct timeval *
 
 void fly_time_sub(struct timeval *tv_ret, struct timeval *tv1, struct timeval *tv2)
 {
+    if (tv_ret == NULL || tv1 == NULL || tv2 == NULL) {
+        return;
+    }
+
     //should keep the tv1 bigger than tv2.
     if (tv1->tv_usec < tv2->tv_usec) {
         --tv1->tv_sec;
@@ -91,7 +103,78 @@ void fly_switch(void **ptr1, void **ptr2)
 //todo: should make sure that the bits is enough.
 long fly_transform_tv_to_ms(struct timeval *tv)
 {
+    if (tv == NULL) {
+        return -1;
+    }
+
     return tv->tv_sec * 1000 + tv->tv_usec / 1000;
+}
+
+int fly_make_sockepair(int domain, int type, int protocol, int array[2])
+{
+    if (socketpair(domain, type, protocol, array) == 0) {
+        if (!fly_set_nonblocking(array[0]) || 
+            !fly_set_nonblocking(array[1]) ||
+            !fly_set_closeonexec(array[0]) ||
+            !fly_set_closeonexec(array[1])) {
+            fly_close_fd(array[0]);
+            fly_close_fd(array[1]); 
+        }    
+        return 0;                  
+    } else {
+        printf("[ERROR] create socketpair error.\n");
+        return -1;
+    } 
+
+    return -1;
+}
+
+int fly_set_nonblocking(int fd)
+{
+    if (fd < 0) {
+        return -1;
+    }
+    int flags;
+    if ((flags = fcntl(fd, F_GETFL, NULL)) < 0) {
+        return -1;
+    }
+
+    if (!(flags & O_NONBLOCK)) {
+        if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) {
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+int fly_set_closeonexec(int fd)
+{
+    if (fd < 0) {
+        return -1;
+    }
+    int flags;
+    if ((flags = fcntl(fd, F_GETFL, NULL)) < 0) {
+        return -1;
+    }
+
+    if (!(flags & FD_CLOEXEC)) {
+        if (fcntl(fd, F_SETFD, flags | FD_CLOEXEC) < 0) {
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+int fly_close_fd(int fd)
+{
+    if (close(fd) != 0) {
+        printf("[ERROR] close fd error.\n");
+        return -1;
+    }
+
+    return 0;
 }
 
 

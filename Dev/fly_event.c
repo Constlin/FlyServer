@@ -9,6 +9,7 @@ Author: Andrew lin
 #include <sys/epoll.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <sys/socket.h>
 #include "fly_event.h"
 #include "fly_util.h"
 
@@ -25,6 +26,8 @@ fly_core *fly_core_init()
     core->fly_active_queue = fly_init_queue();
     core->fly_io_queue = fly_init_queue();
     core->fly_timeout_minheap = fly_minheap_init(core->fly_timeout_minheap);
+    core->fly_hash = fly_hash_init();
+    core->fly_socketpair[0] = core->fly_socketpair[1] = -1;
 
     if (core->fly_reg_queue == NULL || core->fly_active_queue == NULL || core->fly_io_queue == NULL) {
 	    return NULL;
@@ -48,6 +51,11 @@ fly_core *fly_core_init()
 	    return NULL;
     }
     core->ep_info->nevents = 100;
+ 
+    if (fly_sig_init(core) != 0) {
+        printf("[ERROR] init signal error.\n");
+        return NULL;
+    }
     return core;
 }
 
@@ -81,6 +89,10 @@ int fly_event_set(int fd, void (*callback)(int,void *), fly_event *ev, int flags
     } 
 
     ev->time = tv == NULL? NULL : tv;
+    if (ev->flags & FLY_EVENT_SIG) {
+        //signal event need not to set status flag.
+        return 0;
+    }
     ev->status = tv == NULL? FLY_LIST_REG : FLY_MINHEAP_REG;
     
     return 0;
@@ -91,6 +103,22 @@ int fly_event_add(fly_event *ev)
     if (ev == NULL) {
     	return -1;
     }
+    
+    if (ev->flags & FLY_EVENT_SIG) {
+        //signal event, add fly_evsig to fly_core.
+        if (fly_event_add(ev->core->fly_evsig) == -1) {
+            return -1;
+        }
+        if (fly_hash_insert(ev->core->fly_hash, ev, ev->fd) == -1) {
+            printf("[ERROR] call fly_hash_insert error.\n");
+            return -1;
+        }
+        if (fly_set_sig_handler(ev->fd, fly_sig_handler) != 0) {
+            //todo: free this fly_evsig, and return -1.
+            return -1;
+        }
+    }
+
     struct timeval tv_zero;
     tv_zero.tv_sec = 0;
     tv_zero.tv_usec = 0;
@@ -419,7 +447,7 @@ int fly_process_active(fly_core *core)
             printf("ev is NULL.\n");
             continue;
         } 
-        (*ev->callback)(ev->fd,ev->arg);
+        (*ev->callback)(ev->fd, ev->arg);
         /*
             todo: should support the persist event.
             1.if persist event,just remove from active queue.
@@ -510,6 +538,8 @@ int fly_process_timeout(fly_core *core)
     //remove this timeout event from min-heap should after we process this timeout event.
     return 1;    
 }
+
+
 
 
 

@@ -12,7 +12,7 @@ fly_minheap_p fly_minheap_init(fly_minheap_p ptr)
 {
     ptr = malloc(sizeof(struct fly_minheap));
     if (ptr == NULL) {
-    	printf("malloc error.\n");
+    	printf("[ERROR] malloc error.\n");
     	return NULL;
     }
 
@@ -31,7 +31,7 @@ int fly_minheap_size(fly_minheap_p ptr)
 int fly_minheap_reserve(fly_minheap_p ptr, int need_size)
 {
 	if (ptr == NULL) {
-		printf("fly_minheap is NULL.\n");
+		printf("[ERROR] fly_minheap is NULL.\n");
 		return -1;
 	}
 
@@ -45,7 +45,7 @@ int fly_minheap_reserve(fly_minheap_p ptr, int need_size)
 		if (temp_cap < need_size) 
 			temp_cap = need_size;
 		if(!(temp_event = (fly_event_p *)realloc(ptr->fly_event, temp_cap * sizeof(*temp_event)))) {
-			printf("realloc error.\n");
+			printf("[ERROR] realloc error.\n");
 			//todo: should free the fly_minheap
 			return -1;
 		}
@@ -59,7 +59,7 @@ int fly_minheap_reserve(fly_minheap_p ptr, int need_size)
 int fly_minheap_insert(fly_minheap_p ptr, fly_event_p event, int index)
 {
 	if (ptr == NULL || event == NULL || index < 0) {
-		printf("insert error.\n");
+		printf("[ERROR] insert error.\n");
 		return -1;
 	}
 
@@ -85,13 +85,13 @@ int fly_minheap_insert(fly_minheap_p ptr, fly_event_p event, int index)
 int fly_minheap_push(fly_minheap_p ptr, fly_event_p event) 
 {
 	if (ptr == NULL || event == NULL) {
-		printf("fly_minheap_push error.\n");
+		printf("[ERROR] fly_minheap_push error.\n");
 		return -1;
 	}
  
     if (fly_minheap_search(ptr, event) == 1) {
     	//the event's time is conflict, just return -1.
-        printf("the event's time is conflict.\n");
+        printf("[ERROR] the event's time is conflict.\n");
         return -1;
     }
 
@@ -100,7 +100,7 @@ int fly_minheap_push(fly_minheap_p ptr, fly_event_p event)
 	}
 
 	if (fly_minheap_insert(ptr, event, fly_minheap_size(ptr)) < 0) {
-		printf("fly_minheap_insert error.\n");
+		printf("[ERROR] fly_minheap_insert error.\n");
 		return -1;
 	}
 
@@ -138,7 +138,7 @@ int fly_minheap_pop(fly_minheap_p ptr)
 int fly_minheap_free_top(fly_minheap_p ptr)
 {
 	if (fly_minheap_size(ptr) <= 0) {
-        printf("the minheap's size is less than 1.\n");
+        printf("[ERROR] the minheap's size is less than 1.\n");
         return -1;
 	}
 	/*
@@ -156,7 +156,7 @@ int fly_minheap_move_last_to_top(fly_minheap_p ptr)
 	if (ptr->fly_event[fly_minheap_size(ptr) - 1] == NULL && fly_minheap_size(ptr) > 1 ) {
 		//use fly_minheap_size(ptr) > 1 to avoid this situation:
 		//only one event in fly_minheap, we should support to pop this event.
-		printf("the minheap's last one is NULL.\n");
+		printf("[ERROR] the minheap's last one is NULL.\n");
 		return -1;
 	}
 
