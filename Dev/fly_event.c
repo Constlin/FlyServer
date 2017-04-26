@@ -30,7 +30,7 @@ fly_core *fly_core_init()
     core->fly_hash = fly_hash_init();
     core->fly_socketpair[0] = core->fly_socketpair[1] = -1;
 
-    if (core->fly_reg_queue == NULL || core->fly_active_queue == NULL || core->fly_io_queue == NULL) {
+    if (core->fly_reg_queue == NULL || core->fly_active_queue == NULL || core->fly_io_queue == NULL || core->fly_hash == NULL) {
 	    return NULL;
     }
     
@@ -279,10 +279,7 @@ int fly_event_add_to_epoll(fly_core *core)
     		//if get event is NULL,we just ignore it and go continue.
     		continue;
     	}
-        if (fly_insert_queue(core->fly_io_queue, event) != 0) {
-            printf("add event to I/O queue error.\n");
-            return -1;
-        }
+        
         if (event->flags & (FLY_EVENT_READ | FLY_EVENT_WRITE)) {
         	if (event->flags & FLY_EVENT_READ) {
         		op = EPOLL_CTL_ADD;
@@ -300,9 +297,13 @@ int fly_event_add_to_epoll(fly_core *core)
             */
             printf("epoll_fd: %d, op: %d, fd: %d epev.data.fd: %d, epev.events: %d\n",core->ep_info->epoll_fd, op, event->fd, epev.data.fd, epev.events);
         	if (epoll_ctl(core->ep_info->epoll_fd, op, event->fd, &epev) == -1) {
-        		perror("epoll_ctl error.\n");
+                perror("epoll_ctl error.\n");
         		continue;
         	} else {
+                if (fly_insert_queue(core->fly_io_queue, event) != 0) {
+                    printf("add event to I/O queue error.\n");
+                    return -1;
+                }
                 printf("add a event to epoll.\n");
             }
         	num++;

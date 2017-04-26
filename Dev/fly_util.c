@@ -114,10 +114,11 @@ long fly_transform_tv_to_ms(struct timeval *tv)
 int fly_make_sockepair(int domain, int type, int protocol, int array[2])
 {
     if (socketpair(domain, type, protocol, array) == 0) {
-        if (!fly_set_nonblocking(array[0]) || 
-            !fly_set_nonblocking(array[1]) ||
-            !fly_set_closeonexec(array[0]) ||
-            !fly_set_closeonexec(array[1])) {
+        if (fly_set_nonblocking(array[0]) || 
+            fly_set_nonblocking(array[1]) ||
+            fly_set_closeonexec(array[0]) ||
+            fly_set_closeonexec(array[1])) {
+            printf("[DEBUG] close socketpair.\n");
             fly_close_fd(array[0]);
             fly_close_fd(array[1]); 
         }    
@@ -133,15 +134,18 @@ int fly_make_sockepair(int domain, int type, int protocol, int array[2])
 int fly_set_nonblocking(int fd)
 {
     if (fd < 0) {
+        printf("[DEBUG] fly_set_nonblocking fd < 0.\n");
         return -1;
     }
     int flags;
     if ((flags = fcntl(fd, F_GETFL, NULL)) < 0) {
+        printf("[DEBUG] fly_set_nonblocking fcntl error.\n");
         return -1;
     }
 
     if (!(flags & O_NONBLOCK)) {
         if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) {
+            printf("[DEBUG] fly_set_nonblocking fcntl error.\n");
             return -1;
         }
     }
@@ -152,15 +156,18 @@ int fly_set_nonblocking(int fd)
 int fly_set_closeonexec(int fd)
 {
     if (fd < 0) {
+        printf("[DEBUG] fly_set_closeonexec fd < 0.\n");
         return -1;
     }
     int flags;
     if ((flags = fcntl(fd, F_GETFL, NULL)) < 0) {
+        printf("[DEBUG] fly_set_nonblocking fcntl error.\n");
         return -1;
     }
 
     if (!(flags & FD_CLOEXEC)) {
         if (fcntl(fd, F_SETFD, flags | FD_CLOEXEC) < 0) {
+            printf("[DEBUG] fly_set_nonblocking fcntl error.\n");
             return -1;
         }
     }

@@ -18,7 +18,7 @@ int fly_sig_init(fly_core *core)
     if (fly_make_sockepair(AF_UNIX, SOCK_STREAM, 0, core->fly_socketpair) != 0) {
         return -1;
     }
-
+    printf("[DEBUG] socketpair[0]: %d, socketpair[1]: %d.\n", core->fly_socketpair[0], core->fly_socketpair[1]);
     if (fly_event_set(core->fly_socketpair[0], fly_evsig_cb, &core->fly_evsig, FLY_EVENT_INTERNAL | FLY_EVENT_READ, NULL, core, NULL) != 0) {
         return -1;
     }
@@ -84,6 +84,7 @@ int fly_set_sig_handler(int sig, void (*sig_handler)(int i))
 
 int fly_sig_handler(int i)
 {
+    printf("[INFO] FlyServer catch the signal SIGINT, and then write data to socketpair.\n");
     if (evsig_fd == -1) {
     	return -1;
     }

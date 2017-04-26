@@ -15,7 +15,7 @@ fly_hash_p fly_hash_init()
 	hash = malloc(sizeof(struct fly_hash));
 	if (hash == NULL) {
 		printf("[ERROR] malloc error.\n");
-		return -1;
+		return NULL;
 	}
 
 	hash->fly_sig_array = NULL;
