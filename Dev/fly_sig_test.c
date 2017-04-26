@@ -3,6 +3,10 @@ test code for signal event.
 
 author: Andrew lin
 *****************************/
+#include <signal.h>
+#include <stdio.h>
+#include "fly_event.h"
+
 void signal_cb()
 {
 	printf("singla_cb called.\n");

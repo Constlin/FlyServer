@@ -12,6 +12,7 @@ Author: Andrew lin
 #include <sys/socket.h>
 #include "fly_event.h"
 #include "fly_util.h"
+#include "fly_sig.h"
 
 fly_core *fly_core_init()
 {
@@ -106,7 +107,7 @@ int fly_event_add(fly_event *ev)
     
     if (ev->flags & FLY_EVENT_SIG) {
         //signal event, add fly_evsig to fly_core.
-        if (fly_event_add(ev->core->fly_evsig) == -1) {
+        if (fly_event_add(&ev->core->fly_evsig) == -1) {
             return -1;
         }
         if (fly_hash_insert(ev->core->fly_hash, ev, ev->fd) == -1) {
@@ -117,6 +118,8 @@ int fly_event_add(fly_event *ev)
             //todo: free this fly_evsig, and return -1.
             return -1;
         }
+
+        return 1;
     }
 
     struct timeval tv_zero;
@@ -508,6 +511,7 @@ long fly_event_get_timeout(fly_core *core)
         timeout = fly_transform_tv_to_ms(&tv);
         printf("timeout: %d, tv_sec: %d.\n", timeout, tv.tv_sec);
     } else {
+        //default time that epoll_wait return. 2000 means 2s.
         timeout = 2000;
     }
 
@@ -698,7 +702,7 @@ void main()
 */
 
 
-
+/*
 void time_out()
 {
     printf("the time is out!!!!!!!!!!!!!!!!!!!!!!\n");
@@ -837,7 +841,7 @@ void main()
     fly_core_cycle(core);
     return;
 }
-
+*/
 
 
 

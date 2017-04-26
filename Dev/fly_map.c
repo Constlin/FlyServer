@@ -40,7 +40,7 @@ int fly_hash_reserve(fly_hash_p hash, int size)
     	printf("[ERROR] hash is NULL.\n");
     	return -1;
     }
-    
+    int before_capa = hash->fly_hash_cap;
     struct fly_sig **temp_sig_array;
     if (hash->fly_hash_cap < size) {
     	//the capacity less than the user needed, if first set capacity, we set 64 as the linux's signal
@@ -53,6 +53,16 @@ int fly_hash_reserve(fly_hash_p hash, int size)
 			printf("[ERROR] realloc error.\n");
 			//todo: should free the fly_minheap
 			return -1;
+		}
+        //set the new realloc's ele NULL.
+		for (int i = before_capa; i <= size; i++) {
+			temp_sig_array[i] = malloc(sizeof(struct fly_sig));
+			if (temp_sig_array[i] == NULL) {
+				printf("[ERROR] malloc error.\n");
+				return -1;
+			}
+			temp_sig_array[i]->fly_queue = NULL;
+			temp_sig_array[i]->fly_queue_len = 0;			
 		}
 
 		hash->fly_sig_array = temp_sig_array;
@@ -76,15 +86,21 @@ int fly_hash_insert(fly_hash_p hash, struct fly_event* sig_event, int sig_num)
 		}
 	}
 
-    struct fly_queue_head *temp_queue = hash->fly_sig_array[sig_num]->fly_queue;
-	if (temp_queue == NULL) {
-        temp_queue = fly_init_queue();
-        if (temp_queue == NULL) {
-        	return -1;
-        }
-	}
+    if (hash->fly_sig_array[sig_num] != NULL) {
+    	if (hash->fly_sig_array[sig_num]->fly_queue == NULL ) {
+    		if ((hash->fly_sig_array[sig_num]->fly_queue = fly_init_queue()) == NULL) {
+    			return -1;
+    		}
+    	}
+    } else if (hash->fly_sig_array[sig_num] == NULL) {
+    	printf("[ERROR] fly_sig_array[] is NULL.\n");
+    	return -1;
+    } else {
+    	printf("[ERROR] fly_sig_array[] uncertained status.\n");
+    	return -1;
+    }
 
-	if (fly_insert_queue(temp_queue, sig_event) != 0) {
+	if (fly_insert_queue((hash->fly_sig_array[sig_num])->fly_queue, sig_event) != 0) {
 		return -1;
 	}
 

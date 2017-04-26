@@ -4,6 +4,7 @@ opeartion about time. Only support monotonic time.
 author: Andrew lin
 *****************************/
 #include <stdio.h>
+#include <fcntl.h>
 #include "fly_util.h"
 
 int fly_gettime(struct timeval *tv)

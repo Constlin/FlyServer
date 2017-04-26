@@ -22,7 +22,7 @@ qHead fly_init_queue()
 }
 
 //insert a ele to a queue
-int fly_insert_queue(qHead queue,void *ele)
+int fly_insert_queue(qHead queue, void *ele)
 {
     if (queue == NULL || ele == NULL) {
         return -1;
@@ -65,7 +65,7 @@ void *fly_pop_queue(qHead queue)
 	}
 }
 
-int fly_delete_queue(qHead queue,void *ele)
+int fly_delete_queue(qHead queue, void *ele)
 {
     if (queue == NULL || ele == NULL) {
         printf("queue or ele NULL.\n");
@@ -126,7 +126,7 @@ int fly_queue_length(qHead queue)
 }
 
 //destroy the queue, the ptr is used to avoid wild pointers
-void fly_destroy_queue(qHead queue,qHead *ptr) 
+void fly_destroy_queue(qHead queue, qHead *ptr) 
 {
     if (queue == NULL) {
         return;
@@ -135,7 +135,7 @@ void fly_destroy_queue(qHead queue,qHead *ptr)
     qPtr current = NULL;
     qPtr item;
 
-	for (qPtr item = queue->first ; item != NULL ; item = item->next) {
+	for (qPtr item = queue->first; item != NULL; item = item->next) {
 		current = item;
 		free(current);
         current = NULL;

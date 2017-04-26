@@ -3,8 +3,10 @@ source code about adding signal to fly_core
 
 author: Andrew lin
 *****************************/
+#include <stdio.h>
+#include <signal.h>
+#include <sys/socket.h>
 #include "fly_sig.h"
-#include "fly_event.h"
 #include "fly_map.h"
 
 static int evsig_fd = -1;

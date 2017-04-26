@@ -14,7 +14,7 @@ author: Andrew lin
 struct fly_hash {
 	//fly_sig is an array, the array's ele is an pionter which point to fly_sig,
     //the index is the signal's number, the fly_sig_array[0] means signal which number is 1.
-    void **fly_sig_array;         
+    struct fly_sig **fly_sig_array;         
     //the capacity of the array.
     int    fly_hash_cap;    
 };

@@ -6,6 +6,8 @@ author: Andrew lin
 #ifndef _FLY_SIG_H
 #define _FLY_SIG_H
 
+#include "fly_event.h"
+
 int fly_sig_init(fly_core *core);
 
 //add signal event to fly_active_queue
