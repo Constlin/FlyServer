@@ -43,6 +43,7 @@ struct fly_event {
       use to adjust the fly_heap's timeoutevent's time when process a timeout event over.
     */
     struct timeval user_settime;
+    
     struct timeval current_time_cache;
     /*
       the thing that the event take care. 
@@ -113,6 +114,8 @@ struct fly_core {
       a hash table, we can use signal number to get the events from the hash table.
     */
     struct fly_hash *fly_hash;
+    //the return from the method fly_sig_init. 0 for success, -1 for fail.
+    int sig_ret;
     
 };
 
@@ -154,10 +157,6 @@ long fly_event_get_timeout(fly_core *core);
 
 int fly_process_timeout(fly_core *core);
 
-//test method for I/O event
-void fifo_read();
-
-//test method for time event
-void time_out();
+void fly_core_clear(fly_core *core);
 
 #endif

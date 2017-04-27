@@ -40,22 +40,26 @@ int fly_hash_reserve(fly_hash_p hash, int size)
     	printf("[ERROR] hash is NULL.\n");
     	return -1;
     }
+
     int before_capa = hash->fly_hash_cap;
     struct fly_sig **temp_sig_array;
+
     if (hash->fly_hash_cap < size) {
     	//the capacity less than the user needed, if first set capacity, we set 64 as the linux's signal
     	//sum is 64, if not, double it.
     	int temp_cap = hash->fly_hash_cap ? hash->fly_hash_cap * 2 : 64;
+
     	if (temp_cap < size) {
     		temp_cap = size;
     	}
+
     	if(!(temp_sig_array = (struct fly_sig **)realloc(hash->fly_sig_array, temp_cap * sizeof(*temp_sig_array)))) {
 			printf("[ERROR] realloc error.\n");
 			//todo: should free the fly_minheap
 			return -1;
 		}
         //set the new realloc's ele NULL.
-		for (int i = before_capa; i <= size; i++) {
+		for (int i = before_capa; i <= temp_cap; i++) {
 			temp_sig_array[i] = malloc(sizeof(struct fly_sig));
 			if (temp_sig_array[i] == NULL) {
 				printf("[ERROR] malloc error.\n");
@@ -105,5 +109,60 @@ int fly_hash_insert(fly_hash_p hash, struct fly_event* sig_event, int sig_num)
 	}
 
 	return 1;
+}
+
+int fly_hash_delete_sig(fly_hash_p hash, int signal)
+{
+    if (hash == NULL || signal < 0) {
+    	printf("[ERROR] fly_hash_delete_sig: paras error.\n");
+    	return -1;
+    }
+
+    if (signal > hash->fly_hash_cap) {
+    	printf("[ERROR] fly_hash_delete_sig: the signal is bigger than fly_hash_cap.\n");
+        return -1;
+    }
+
+    fly_destroy_queue((hash->fly_sig_array[signal])->fly_queue);
+    free(hash->fly_sig_array[signal]);
+
+    return 1;
+}
+
+int fly_hash_delete_event(fly_hash_p hash, int signal, struct fly_event *event)
+{
+    if (hash == NULL || event == NULL || signal < 0) {
+    	printf("[ERROR] fly_hash_delete_event: paras error.\n");
+    	return -1;
+    }
+
+    if (signal > hash->fly_hash_cap) {
+    	printf("[ERROR] fly_hash_delete_event: the signal is bigger than fly_hash_cap.\n");
+        return -1;
+    }
+
+    if (fly_delete_queue((hash->fly_sig_array[signal])->fly_queue, event) == -1) {
+    	printf("[ERROR] fly_hash_delete_event: delete error.\n");
+    	return -1;
+    } 
+
+    return 1;
+}
+
+int fly_hash_free(fly_hash_p hash)
+{
+	if (hash == NULL) {
+		printf("[ERROR] fly_hash_free: hash is NULL.\n");
+		return -1;
+	}
+
+    for (int i = 0; i <= hash->fly_hash_cap; ++i){
+    	fly_destroy_queue((hash->fly_sig_array[i])->fly_queue);
+    	free(hash->fly_sig_array[i]);
+    }
+
+    free(hash);
+
+    return 1;
 }
 

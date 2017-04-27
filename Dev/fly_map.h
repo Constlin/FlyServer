@@ -12,8 +12,10 @@ author: Andrew lin
 #include "fly_event.h"
 
 struct fly_hash {
-	//fly_sig is an array, the array's ele is an pionter which point to fly_sig,
-    //the index is the signal's number, the fly_sig_array[0] means signal which number is 1.
+	/*
+	 *fly_sig is an array, the array's ele is an pionter which point to fly_sig,
+     *the index is the signal's number, the fly_sig_array[0] means signal which number is 1.
+     */
     struct fly_sig **fly_sig_array;         
     //the capacity of the array.
     int    fly_hash_cap;    
@@ -36,6 +38,10 @@ int fly_hash_reserve(fly_hash_p hash, int size);
 
 int fly_hash_insert(fly_hash_p hash, struct fly_event* sig_event, int sig_num);
 
+int fly_hash_delete_sig(fly_hash_p hash, int signal);
 
+int fly_hash_delete_event(fly_hash_p hash, int signal, struct fly_event *event);
+
+int fly_hash_free(fly_hash_p hash);
 
 #endif

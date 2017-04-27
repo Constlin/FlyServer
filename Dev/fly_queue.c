@@ -125,11 +125,11 @@ int fly_queue_length(qHead queue)
     return len;
 }
 
-//destroy the queue, the ptr is used to avoid wild pointers
-void fly_destroy_queue(qHead queue, qHead *ptr) 
+//destroy the queue
+int fly_destroy_queue(qHead queue) 
 {
     if (queue == NULL) {
-        return;
+        return -1;
     }
 
     qPtr current = NULL;
@@ -142,9 +142,9 @@ void fly_destroy_queue(qHead queue, qHead *ptr)
 	}
     
     free(queue);
-    *ptr = NULL;
+    queue = NULL;
 
-	return;
+	return 1;
 }
 
 /*

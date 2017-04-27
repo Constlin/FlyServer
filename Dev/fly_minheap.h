@@ -45,9 +45,8 @@ int fly_minheap_push(fly_minheap_p ptr, fly_event_p event);
 
 fly_event_p fly_minheap_top(fly_minheap_p ptr);
 
-/*
-  remove the top element ptr->fly_event pointed and move the left element forward.
-*/
+
+//remove the top element ptr->fly_event pointed and move the left element forward.
 int fly_minheap_pop(fly_minheap_p ptr);
 
 //get the top evetn and free it.
@@ -69,5 +68,8 @@ int fly_minheap_set_top_null(fly_minheap_p ptr);
 
 //make fly_minheap's time decreace top's time to make sure that epoll_wait get true timeout.
 int fly_minheap_time_adjust(fly_minheap_p ptr);
+
+//free fly_minheap
+int fly_minheap_free(fly_minheap_p ptr);
 
 #endif

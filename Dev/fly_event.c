@@ -17,10 +17,12 @@ Author: Andrew lin
 fly_core *fly_core_init()
 {
     fly_core *core;
+
     if ((core = malloc(sizeof(fly_core))) == NULL) {
         printf("malloc error.\n");
     	return NULL;
     }
+
     memset(core,0,sizeof(fly_core));
 
     core->fly_reg_queue = fly_init_queue();
@@ -31,32 +33,40 @@ fly_core *fly_core_init()
     core->fly_socketpair[0] = core->fly_socketpair[1] = -1;
 
     if (core->fly_reg_queue == NULL || core->fly_active_queue == NULL || core->fly_io_queue == NULL || core->fly_hash == NULL) {
-	    return NULL;
+	    fly_core_clear(core);
+        return NULL;
     }
     
     if ((core->ep_info = malloc(sizeof(struct epoll_info))) == NULL) {
-    	printf("malloc error.\n");
+    	printf("[ERROR] malloc error.\n");
+        fly_core_clear(core);
     	return NULL;
     }
+
     memset(core->ep_info,0,sizeof(struct epoll_info));
 
     if ((core->ep_info->epoll_fd = epoll_create(32000)) == -1) {
-	    printf("epoll create error.\n");
+	    printf("[ERROR] epoll create error.\n");
+        fly_core_clear(core);
 	    return NULL;
     } else {
-        printf("epoll create successfully,epoll_fd: %d\n",core->ep_info->epoll_fd);
+        printf("[DEBUG] epoll create successfully,epoll_fd: %d\n",core->ep_info->epoll_fd);
     }
 
     if ((core->ep_info->events = malloc(100*sizeof(struct epoll_event))) == NULL) {
-	    printf("epoll create error.\n");
+	    printf("[ERROR] epoll create error.\n");
+        fly_core_clear(core);
 	    return NULL;
     }
+
     core->ep_info->nevents = 100;
  
-    if (fly_sig_init(core) != 0) {
+    if ((core->sig_ret = fly_sig_init(core)) != 0) {
         printf("[ERROR] init signal error.\n");
+        fly_core_clear(core);
         return NULL;
     }
+
     return core;
 }
 
@@ -65,15 +75,16 @@ int fly_event_set(int fd, void (*callback)(int,void *), fly_event *ev, int flags
     //If timeout event, the tv should me sec level. It means that the tv_sec shuold > 0.
     if (callback == NULL || ev == NULL  || core == NULL) {
         if (callback == NULL) {
-            printf("callback null.\n");
+            printf("[ERROR] callback null.\n");
         } else if (ev == NULL) {
-            printf("ev null.\n");
+            printf("[ERROR] ev null.\n");
         } else if (core == NULL) {
-            printf("core null.\n");
+            printf("[ERROR] core null.\n");
         }
 
 	    return -1;
     }
+
     ev->fd = fd;
     ev->callback = callback;
     ev->flags = flags;
@@ -84,16 +95,18 @@ int fly_event_set(int fd, void (*callback)(int,void *), fly_event *ev, int flags
         ev->user_settime.tv_sec = tv->tv_sec;
         ev->user_settime.tv_usec = tv->tv_usec;
         fly_gettime(&ev->current_time_cache);
-        printf("user set tv_sec: %d.\n", tv->tv_sec);
+        printf("[DEBUG] user set tv_sec: %d.\n", tv->tv_sec);
         fly_time_plus(tv, tv, &ev->current_time_cache);
-        printf("ret_tv_sec: %d, ret_tv_usec: %d, cut_tv_sec: %d.\n", tv->tv_sec, tv->tv_usec, ev->current_time_cache.tv_sec);
+        printf("[DEBUG] ret_tv_sec: %d, ret_tv_usec: %d, cut_tv_sec: %d.\n", tv->tv_sec, tv->tv_usec, ev->current_time_cache.tv_sec);
     } 
 
     ev->time = tv == NULL? NULL : tv;
+
     if (ev->flags & FLY_EVENT_SIG) {
         //signal event need not to set status flag.
         return 0;
     }
+
     ev->status = tv == NULL? FLY_LIST_REG : FLY_MINHEAP_REG;
     
     return 0;
@@ -126,6 +139,7 @@ int fly_event_add(fly_event *ev)
     tv_zero.tv_sec = 0;
     tv_zero.tv_usec = 0;
     int ret_compare = fly_comparetime(ev->time, &tv_zero);
+
     if (ret_compare != 1) {
         //ev->time == 0 means it is not a timeout event.
         int ret = 0;
@@ -172,7 +186,7 @@ int fly_event_add(fly_event *ev)
         if (ev->status & FLY_MINHEAP_REG) {
             //add timeout event to minheap and set the status to FLY_LIST_ACTIVE.
             if (fly_minheap_push(ev->core->fly_timeout_minheap, ev) < 0) {
-                printf("add event to fly_minheap error.\n");
+                printf("[ERROR] add event to fly_minheap error.\n");
                 return -1;
             }
             ev->status = FLY_LIST_ACTIVE;
@@ -187,25 +201,27 @@ int fly_event_add(fly_event *ev)
                     break;
             }
         } else if (ev->status & FLY_LIST_PROCESS) {
-            printf("error. the event had been processed.\n");
+            printf("[ERROR] the event had been processed.\n");
             ret = -3;
         } else {
-            printf("error. uncertain event's status.\n");
+            printf("[ERROR] uncertain event's status.\n");
             return -4;
         }
         
         return ret;  
     } 
+
     return -1;
 }
 
 int fly_event_del(fly_event *ev) 
 {
     if (ev == NULL) {
-	return -1;
+	    return -1;
     }
 
     int ret = 0;
+
 	switch (ev->status) {
     	case FLY_LIST_ACTIVE:
     	    ret = fly_delete_queue(ev->core->fly_reg_queue,ev) != 1?-2:1;
@@ -226,7 +242,7 @@ void fly_core_cycle(fly_core *core)
 {
     while(1) {
         if (core == NULL) {
-            printf("core is NULL.\n");
+            printf("[ERROR] core is NULL.\n");
             return;
         }
 
@@ -247,7 +263,7 @@ void fly_core_cycle(fly_core *core)
         fly_process_timeout(core);
            
         if (fly_queue_empty(core->fly_active_queue) != 1) {
-            printf("active queue is not empty, process active event.\n");
+            printf("[DEBUG] active queue is not empty, process active event.\n");
             fly_process_active(core);
         }
     }
@@ -271,11 +287,11 @@ int fly_event_add_to_epoll(fly_core *core)
 
 	//add all events to epoll from reg queue
 	for (int i = 0; i < fly_queue_length(core->fly_reg_queue); i++) {
-        printf("the queue length is: %d.\n", fly_queue_length(core->fly_reg_queue));
+        printf("[DEBUG] the queue length is: %d.\n", fly_queue_length(core->fly_reg_queue));
 		event = fly_pop_queue(core->fly_reg_queue);
 
     	if (event == NULL) {
-    		printf("event popped from queue is NULL.\n");
+    		printf("[ERROR] event popped from queue is NULL.\n");
     		//if get event is NULL,we just ignore it and go continue.
     		continue;
     	}
@@ -295,16 +311,16 @@ int fly_event_add_to_epoll(fly_core *core)
                 ET: events only notify us when the data become readable from unreadable or 
                     writeable from unwriteable
             */
-            printf("epoll_fd: %d, op: %d, fd: %d epev.data.fd: %d, epev.events: %d\n",core->ep_info->epoll_fd, op, event->fd, epev.data.fd, epev.events);
+            printf("[DEBUG] epoll_fd: %d, op: %d, fd: %d epev.data.fd: %d, epev.events: %d\n",core->ep_info->epoll_fd, op, event->fd, epev.data.fd, epev.events);
         	if (epoll_ctl(core->ep_info->epoll_fd, op, event->fd, &epev) == -1) {
-                perror("epoll_ctl error.\n");
+                perror("[ERROR] epoll_ctl error.\n");
         		continue;
         	} else {
                 if (fly_insert_queue(core->fly_io_queue, event) != 0) {
-                    printf("add event to I/O queue error.\n");
+                    printf("[ERROR] add event to I/O queue error.\n");
                     return -1;
                 }
-                printf("add a event to epoll.\n");
+                printf("[DEBUG] add a event to epoll.\n");
             }
         	num++;
         }
@@ -322,10 +338,10 @@ int fly_event_remove_from_epoll(fly_event *event)
     } else if (event->flags & FLY_EVENT_WRITE) {
         epev.events = EPOLLOUT;
     } else {
-        printf("what's this event?\n");
+        printf("[ERROR] what's this event?\n");
     }
     if (epoll_ctl(event->core->ep_info->epoll_fd, EPOLL_CTL_DEL, event->fd, &epev) == -1) {
-        printf("epoll del error.\n");
+        printf("[ERROR] epoll del error.\n");
         return -1;
     }
 
@@ -340,18 +356,18 @@ int fly_event_dispatch(fly_core *core)
     long timeout;
     qHead *head = core->fly_io_queue;
     if (head == NULL) {
-        printf("queue head error.\n");
+        printf("[ERROR] queue head error.\n");
         return -1;
     }
     //get the min-heap's top event's timeout, remember after this
     //operation this event is still in the min-heap.
     timeout = fly_event_get_timeout(core);
-    printf("the timeout is: %d.\n", timeout);
+    printf("[DEBUG] the timeout is: %d.\n", timeout);
     int nfds = epoll_wait(core->ep_info->epoll_fd, core->ep_info->events, core->ep_info->nevents, timeout);
-    printf("epoll_wait over. nfds: %d, timeout: %d.\n", nfds, timeout);
+    printf("[DEBUG] epoll_wait over. nfds: %d, timeout: %d.\n", nfds, timeout);
     if (nfds < 0) {
         if (errno != EINTR) {
-            perror("epoll wait error.\n");
+            perror("[ERROR] epoll wait error.\n");
             return -1;
         }
 
@@ -376,7 +392,7 @@ int fly_event_dispatch(fly_core *core)
         int what = core->ep_info->events[i].events;
 
         if ((ev = fly_use_fd_find_event(core->ep_info->events[i].data.fd, head)) == NULL) {
-                printf("fly_use_fd_find_event return NULL.\n");
+                printf("[ERROR] fly_use_fd_find_event return NULL.\n");
                 return -1;
         }
 
@@ -411,13 +427,13 @@ fly_event *fly_use_fd_find_event(int fd, qHead head)
 {
     fly_event *ev;
     if (head == NULL || fd < 0) {
-        printf("queue head is NULL or fd < 0.\n");
+        printf("[ERROR] queue head is NULL or fd < 0.\n");
         return NULL;
     }
 
     qPtr qp = head->first;
     if (qp == NULL) {
-        printf("qp is NULL.\n");
+        printf("[ERROR] qp is NULL.\n");
         return NULL;
     }
 
@@ -440,7 +456,7 @@ int fly_process_active(fly_core *core)
     tv.tv_sec = 0;
     tv.tv_usec = 0;
     if (core == NULL) {
-        printf("core is NULL.\n");
+        printf("[ERROR] core is NULL.\n");
         return -1;
     }
     
@@ -448,7 +464,7 @@ int fly_process_active(fly_core *core)
     for (qp = core->fly_active_queue->first; qp != NULL; qp = qp->next) {
         ev = qp->ele;
         if (ev == NULL) {
-            printf("ev is NULL.\n");
+            printf("[ERROR] ev is NULL.\n");
             continue;
         } 
         (*ev->callback)(ev->fd, ev->arg);
@@ -461,11 +477,11 @@ int fly_process_active(fly_core *core)
             //timeout event, we remove this timeevent both from fly_minheap
             //and active queue.
             if ((fly_delete_queue(core->fly_active_queue, ev) != 1)) {
-                printf("remove ele from active queue/io queue error.\n");
+                printf("[ERROR] remove ele from active queue/io queue error.\n");
                 return -1;
             } else {
                 ev->status = FLY_LIST_ACTIVE; 
-                printf("remove unpersist event successfully.\n");
+                printf("[DEBUG] remove unpersist event successfully.\n");
             }
 
             //make fly_miheap's event's time decrease fly_minheap's top event's time.
@@ -475,18 +491,18 @@ int fly_process_active(fly_core *core)
             }
 
             if (fly_minheap_pop(core->fly_timeout_minheap) != 1) {
-                printf("fly_minheap_pop error.\n");
+                printf("[ERROR] fly_minheap_pop error.\n");
                 return -1;
             }
 
         } else if ((fly_delete_queue(core->fly_active_queue, ev) != 1) /*|| fly_delete_queue(core->fly_io_queue, ev) != 1*/) {
             
-            printf("remove ele from active queue/io queue error.\n");
+            printf("[ERROR] remove ele from active queue/io queue error.\n");
             return -1;
 
         } else {
             ev->status = FLY_LIST_ACTIVE; //if not set this, after delete event at queue,next cycle can't add this event to true queue.
-            printf("remove unpersist event successfully.\n");
+            printf("[DEBUG] remove unpersist event successfully.\n");
 
         }
         
@@ -503,14 +519,14 @@ long fly_event_get_timeout(fly_core *core)
     struct timeval tv;
     fly_event_p ev = fly_minheap_top(core->fly_timeout_minheap);
     if (ev != NULL) {
-        printf("test log. ev's pointer: %p. tv_sec: %d, tv_usec: %d.\n", ev, ev->time->tv_sec, ev->time->tv_usec);
+        printf("[DEBUG] test log. ev's pointer: %p. tv_sec: %d, tv_usec: %d.\n", ev, ev->time->tv_sec, ev->time->tv_usec);
     }
     
     if (fly_minheap_size(core->fly_timeout_minheap) > 0) {      
         tv = *(ev->time);
         fly_time_sub(&tv, &tv, &ev->current_time_cache);
         timeout = fly_transform_tv_to_ms(&tv);
-        printf("timeout: %d, tv_sec: %d.\n", timeout, tv.tv_sec);
+        printf("[DEBUG] timeout: %d, tv_sec: %d.\n", timeout, tv.tv_sec);
     } else {
         //default time that epoll_wait return. 2000 means 2s.
         timeout = 2000;
@@ -530,18 +546,73 @@ int fly_process_timeout(fly_core *core)
     fly_event_p event = fly_minheap_top(core->fly_timeout_minheap);
     
     if (event == NULL) {
-        printf("fly_minheap_top return NULL.\n");
+        printf("[ERROR] fly_minheap_top return NULL.\n");
         return -1;
     }
 
     //add this timeout event to active queue.
     if (fly_event_add(event) != 0) {
-        printf("add timeout event to active queue error.\n");
+        printf("[ERROR] add timeout event to active queue error.\n");
         return -1;
     }
 
     //remove this timeout event from min-heap should after we process this timeout event.
     return 1;    
+}
+
+void fly_core_clear(fly_core *core)
+{
+    if (core->fly_reg_queue != NULL) {
+        if (fly_destroy_queue(core->fly_reg_queue) != 1) {
+                printf("[ERROR] destroy queue fly_reg_queue error.\n");
+                //don't return, we need to free other.
+        }
+    }
+
+    if (core->fly_active_queue != NULL) {
+        if (fly_destroy_queue(core->fly_active_queue) != 1) {
+            printf("[ERROR] destroy queue fly_reg_queue error.\n");
+            //don't return, we need to free other.
+        }
+    }
+
+    if (core->fly_io_queue != NULL) {
+        if (fly_destroy_queue(core->fly_io_queue) != 1) {
+            printf("[ERROR] destroy queue fly_reg_queue error.\n");
+            //don't return, we need to free other.
+        }
+    }
+
+    if (core->fly_timeout_minheap != NULL) {
+        if (fly_minheap_free(core->fly_timeout_minheap) != 1) {
+            printf("[ERROR] destroy fly_minheap error.\n");
+        }
+    }
+
+    if (core->fly_hash != NULL) {
+        if (fly_hash_free(core->fly_hash) != 1) {
+            printf("[ERROR] destroy fly_hash error.\n");
+        }
+    }
+
+    if (core->ep_info != NULL) {
+        if (core->ep_info->epoll_fd != -1) {
+            fly_close_fd(core->ep_info->epoll_fd);
+        }
+
+        if (core->ep_info->events != NULL) {
+            free(core->ep_info->events);
+        }
+
+        free(core->ep_info);
+    }
+
+    if (core->sig_ret == 0) {
+        fly_close_fd(core->fly_socketpair[0]);
+        fly_close_fd(core->fly_socketpair[1]);
+    }
+    
+    free(core);      
 }
 
 /*

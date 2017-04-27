@@ -333,6 +333,18 @@ int fly_minheap_time_adjust(fly_minheap_p ptr)
 	return 1;
 }
 
+int fly_minheap_free(fly_minheap_p ptr)
+{
+	if (ptr == NULL) {
+		printf("[ERROR] fly_minheap_free: fly_minheap is NULL.\n");
+		return -1;
+	}
+
+	free(ptr);
+
+	ptr = NULL;
+	return 1;
+}
 
 
 /******************************************
