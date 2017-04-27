@@ -1,6 +1,8 @@
 /********************************
 A min-heap implemented based on an array.
 
+insert strategy: new node is inserted at the end of the array.
+
 Author: Andrew lin
 ********************************/
 #ifndef _FLY_MINHEAP_H
