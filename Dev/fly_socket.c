@@ -1,13 +1,22 @@
-int fly_bind_socket(const char *addr, int port)
+#include "fly_util.h"
+#include "fly_socket.h"
+#include "fly_connection.h"
+
+int fly_bind_socket(fly_listening_t *listener)
 {
+    if (listener == NULL) {
+        printf("[ERROR] fly_bind_socket: listener is null.\n");
+        return -1;
+    }
+
+    if (listener->addr == NULL || listener->port < 0) {
+        return -1;
+    }
+
 	struct addrinfo *ai = NULL;
     int open = 1;
 
-	if (addr == NULL || port < 0) {
-		return -1;
-	}
-
-    ai = fly_make_addr(addr, port);
+    ai = fly_make_addr(listener);
 
     if (ai == NULL) {
     	return -1;
@@ -19,6 +28,11 @@ int fly_bind_socket(const char *addr, int port)
 		printf("[ERROR] create socket error.\n");
 		return -1;
 	}
+
+    listener->fd     = fd;
+    listener->family = AF_INET;
+    listener->type   = SOCK_STREAM;
+    listener->proto  = IPPROTO_CP;
 
 	if (fly_set_nonblocking(fd) == -1) {
 		fly_close_fd(fd);
@@ -42,34 +56,77 @@ int fly_bind_socket(const char *addr, int port)
 		return -1;
     }
 
-    return fd;
+    listener->sockaddr = ai->ai_addr;
+    listener->addrlen  = (socketlen_t)ai->ai_addrlen);
+
+    return 1;
 }
 
-int fly_accept_socket(int fd);
-
-int fly_create_tcp_service_with_handle(const char *addr, int port)
+int fly_accept_socket(struct fly_listening *listen)
 {
-	int fd = fly_bind_socket(addr, port);
+    if (accept(listen->fd, listen->sockaddr, listen->addrlen) == -1) {
+        printf("[ERROR] accept error.\n");
+        return -1;
+    }
+
+    fly_connection_t *conn = fly_get_connection(/* todo: connection pool */);
+
+    //todo: get a fly_connection for this accepted tcp connection
+}
+
+int fly_bind_socket_and_listen(const char *addr, int port)
+{
+    fly_listening_t *listener = malloc(sizeof(fly_listening_t));
+
+    if (listener == NULL) {
+        printf("[ERROR] fly_bind_socket_and_listen: malloc error.\n");
+        return -1;
+    }
+
+    listener->addr = addr;
+    listener->port = port;
+
+	if (fly_bind_socket(listener) != 1) {
+        printf("[ERROR] fly_bind_socket_and_listen: fly_bind_socket error.\n");
+        free(listener);
+        return -1;
+    }
+
+    int fd = listener->fd;
 
 	if (fd == -1) {
-		printf("[ERROR] fly_bind_socket error.\n");
+		printf("[ERROR] fly_bind_socket_and_listen: fd is -1.\n");
+        free(listener);
 		return -1;
 	}
 
     if (listen(fd, 128) == -1) {
-    	printf("[ERROR] listen socket error.\n");
+    	printf("[ERROR] fly_bind_socket_and_listen: listen socket error.\n");
     	fly_close_fd(fd);
+        free(listener);
 		return -1;
     }
 
-    //todo: fork process to process the fd.
+    printf("[DEBUG] fly_bind_socket_and_listen successfully, addr: %s, port: %d", listener->addr, listener->port)
+
+    return 1;
 }
 
-struct addrinfo *fly_make_addr(const char *addr, int port)
+struct addrinfo *fly_make_addr(fly_listening_t *listener)
 {
+    if (listener == NULL) {
+        printf("[ERROR] fly_make_addr: listener is null.\n");
+        return -1;
+    }
+
+    if (listener->addr == NULL || listener->port < 0) {
+        printf("[ERROR] fly_make_addr: listener has null.\n");
+        return -1;
+    }
+
     struct addrinfo hints;
     struct addrinfo *ai = NULL;
-    char *strport;
+    char strport[32];
 
     memset(&hints, 0, sizeof(hints));
 
@@ -77,16 +134,12 @@ struct addrinfo *fly_make_addr(const char *addr, int port)
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
 
-    fly_int_to_char(port, strport);
+    fly_int_to_char(listener->port, strport);
 
-    if (getaddrinfo(addr, strport, &hints, &ai) != 0) {
+    if (getaddrinfo(listener->addr, strport, &hints, &ai) != 0) {
     	return -1;
     }
 
     return ai;
 }
 
-int fly_int_to_char(int n, char *c)
-{
-
-}

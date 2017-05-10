@@ -30,4 +30,6 @@ int fly_set_closeonexec(int fd);
 
 int fly_close_fd(int fd);
 
+int fly_int_to_char(int n, char *c);
+
 #endif
