@@ -6,6 +6,7 @@ Author: Andrew lin
 #include "fly_util.h"
 #include "fly_socket.h"
 #include "fly_connection.h"
+#include "fly_queue.h"
 
 int fly_bind_socket(fly_listening_t *listener)
 {
@@ -79,7 +80,7 @@ int fly_accept_socket(struct fly_listening *listen)
     //todo: get a fly_connection for this accepted tcp connection
 }
 
-int fly_bind_socket_and_listen(const char *addr, int port)
+int fly_bind_socket_and_listen(fly_master_t *master)
 {
     fly_listening_t *listener = malloc(sizeof(fly_listening_t));
 
@@ -110,6 +111,16 @@ int fly_bind_socket_and_listen(const char *addr, int port)
     	fly_close_fd(fd);
         free(listener);
 		return -1;
+    }
+
+    if (master->listener == NULL) {
+    	printf("[ERROR] fly_bind_socket_and_listen: queue listener is NULL.\n");
+    	return -1;
+    }
+
+    if (fly_insert_queue(master->listener, listener) == -1) {
+    	printf("[ERROR] fly_bind_socket_and_listen: insert queue listener error.\n");
+    	return -1;
     }
 
     printf("[DEBUG] fly_bind_socket_and_listen successfully, addr: %s, port: %d", listener->addr, listener->port)

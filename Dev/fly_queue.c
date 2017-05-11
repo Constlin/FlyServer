@@ -147,6 +147,15 @@ int fly_destroy_queue(qHead queue)
 	return 1;
 }
 
+void *fly_get_top(qHead queue)
+{
+    if (fly_queue_empty(queue) == 1) {
+        return NULL;
+    }
+
+    return queue->first->ele;
+}
+
 /*
     the main's function is testing fly_queue.
     test case:

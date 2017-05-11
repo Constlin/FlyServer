@@ -20,6 +20,7 @@ struct fly_queue_head {
 };
 
 typedef struct fly_queue_head* qHead;
+typedef struct fly_queue_head  fly_queue_t;
 
 
 //initializate a queue
@@ -42,5 +43,7 @@ int fly_queue_length(qHead queue);
 
 //destroy the queue
 int fly_destroy_queue(qHead queue);
+
+void *fly_get_top(qHead queue);
 
 #endif
