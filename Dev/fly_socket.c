@@ -1,3 +1,8 @@
+/********************************
+operation about socket, like bind listen, etc
+
+Author: Andrew lin
+********************************/
 #include "fly_util.h"
 #include "fly_socket.h"
 #include "fly_connection.h"
@@ -57,7 +62,7 @@ int fly_bind_socket(fly_listening_t *listener)
     }
 
     listener->sockaddr = ai->ai_addr;
-    listener->addrlen  = (socketlen_t)ai->ai_addrlen);
+    listener->addrlen  = (socketlen_t)ai->ai_addrlen;
 
     return 1;
 }

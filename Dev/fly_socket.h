@@ -1,3 +1,8 @@
+/********************************
+operation about socket, like bind listen, etc
+
+Author: Andrew lin
+********************************/
 #ifndef _FLY_SOCKET_H
 #define _FLY_SOCKET_H
 
