@@ -11,17 +11,26 @@ Author: Andrew lin
 #include "fly_server.h"
 
 struct fly_process {
-	pid_t             pid;
+	pid_t              pid;
     
     //one worker process associated one core
-	fly_core         *event_core;
+	fly_core          *event_core;
 
-    //one worker process associated one connection pool
-    fly_connection_t *conn;
+    //one worker process associated one connection pool, free_conn is the next available fly_connection_t
+    fly_connection_t  *free_conn;
+
+    //the number of the free connection
+    int                conn_number;
+
+    //the number of the used connection
+    int                used_conn_number;
+
+    //an array which ele is the fly_connection_t
+    fly_array_t       *conn_pool;
 
     //the conn's fd which this work process care
     //todo: now one process only care one connection, in future, need to support multi
-    int               fd;
+    int                fd;
 };
 
 typedef struct fly_process fly_process_t;

@@ -31,6 +31,9 @@ struct fly_listening {
     //socket's protocol
     int                 proto;
 
+    //the handler for the listener
+    int                (*handler)(int fd, fly_process_t* proc);
+
 };
 
 typedef struct fly_listening fly_listening_t;
@@ -50,8 +53,22 @@ struct fly_connection {
 
     //the buffer used for write data to this connection's internet.
     struct fly_buf   *write_buf;
+
+    //if the connection is used, set to 1, else 0
+    int               used;
+
+    //pointed to next free connection
+    fly_connection_t *next_free;
+
+    //the fly_listening_t that this connection associated
+    fly_listening_t  *listener;
+
 };
 
 typedef struct fly_connection fly_connection_t;
+
+fly_array_t *fly_connection_pool_init();
+
+fly_connection_t *fly_get_connection(fly_process_t *proc);
 
 #endif

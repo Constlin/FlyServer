@@ -112,14 +112,13 @@ int fly_worker_process_init(fly_master_t *master, int index)
     process->fd = ls->fd;
     process->pid = pid;
     process->event_core = fly_core_init();
+    process->conn_pool = fly_connection_pool_init();
 
     if (process->event_core == NULL) {
     	printf("[ERROR] fly_worker_process_init: fly_core_init error.\n");
     	free(process);
     	return -1;
     } 
-
-    process->conn = fly_connection_pool_init();
 
     if (process->conn == NULL) {
     	printf("[ERROR] fly_worker_process_init: fly_connection_pool_init error.\n");

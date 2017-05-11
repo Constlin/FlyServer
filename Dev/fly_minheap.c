@@ -46,11 +46,13 @@ int fly_minheap_reserve(fly_minheap_p ptr, int need_size)
 		int temp_cap = ptr->fly_minheap_cap ? ptr->fly_minheap_cap * 2 : 8;
 		if (temp_cap < need_size) 
 			temp_cap = need_size;
+		
 		if(!(temp_event = (fly_event_p *)realloc(ptr->fly_event, temp_cap * sizeof(*temp_event)))) {
 			printf("[ERROR] realloc error.\n");
 			//todo: should free the fly_minheap
 			return -1;
 		}
+
 		ptr->fly_event = temp_event;
 		ptr->fly_minheap_cap = temp_cap;
 	}
