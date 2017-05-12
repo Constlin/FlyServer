@@ -35,6 +35,7 @@ int fly_master_process_init(fly_master_t *master)
 
     sigemptyset(&set);
 
+    //main process listen socket, so the worker process all is listening this socket
     if (fly_bind_socket_and_listen(master) == -1) {
     	printf("[ERROR] fly_master_process_init: bind listen socket error.\n");
     	return -1;
@@ -98,7 +99,8 @@ int fly_worker_process_init(fly_master_t *master, int index)
     	return -1;
     }
 
-    fly_linstening_t *ls = fly_get_top(master->listener);
+    //todo: temporarily we only listen one socket, so just get the queue's top ele.
+    fly_linstening_t *ls = fly_queue_get_top(master->listener);
     pif_t pid = getpid();
 
     fly_process_t *process = malloc(sizeof(fly_process_t));
@@ -113,6 +115,8 @@ int fly_worker_process_init(fly_master_t *master, int index)
     process->pid = pid;
     process->event_core = fly_core_init();
     process->conn_pool = fly_connection_pool_init();
+    process->revent_queue = fly_init_queue();
+    process->wevent_queue = fly_init_queue();
 
     if (process->event_core == NULL) {
     	printf("[ERROR] fly_worker_process_init: fly_core_init error.\n");
@@ -153,6 +157,11 @@ int fly_worker_process_init(fly_master_t *master, int index)
     	free(event);  
     	free(process);
     	return -1;
+    }
+
+    if (fly_insert_queue(process->revent_queue, event) == -1) {
+        printf("[ERROR] fly_worker_process_init: fly_insert_queue error.\n");
+        return -1;
     }
 
     return 1;

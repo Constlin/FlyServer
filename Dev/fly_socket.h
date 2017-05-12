@@ -18,4 +18,6 @@ int fly_accept_socket(int fd);
 
 int fly_bind_socket_and_listen(fly_master_t *master);
 
+void fly_free_socket(int socket);
+
 #endif

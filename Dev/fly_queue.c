@@ -147,7 +147,7 @@ int fly_destroy_queue(qHead queue)
 	return 1;
 }
 
-void *fly_get_top(qHead queue)
+void *fly_queue_get_top(qHead queue)
 {
     if (fly_queue_empty(queue) == 1) {
         return NULL;

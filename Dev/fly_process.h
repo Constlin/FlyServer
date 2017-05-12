@@ -31,6 +31,12 @@ struct fly_process {
     //the conn's fd which this work process care
     //todo: now one process only care one connection, in future, need to support multi
     int                fd;
+    
+    //the read event that the process cares
+    fly_queue_t       *revent_queue;
+
+    //the write event that the process cares
+    fly_queue_t       *wevent_queue;
 };
 
 typedef struct fly_process fly_process_t;
@@ -44,6 +50,7 @@ int fly_master_process_cycle();
 
 int fly_start_worker_process(fly_master_t *master);
 
+//the index is the index of the array which is in fly_master_t's process_info
 int fly_create_process(fly_master_t *master, int index);
 
 int fly_worker_process_init(fly_master_t *master, int index);

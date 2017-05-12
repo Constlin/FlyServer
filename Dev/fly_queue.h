@@ -44,6 +44,6 @@ int fly_queue_length(qHead queue);
 //destroy the queue
 int fly_destroy_queue(qHead queue);
 
-void *fly_get_top(qHead queue);
+void *fly_queue_get_top(qHead queue);
 
 #endif

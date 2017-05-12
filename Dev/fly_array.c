@@ -48,3 +48,16 @@ int fly_array_reserve(fly_array_t *dynamic_array, int need_size)
     return 1;
 }
 
+int fly_free_array(fly_array_t *dynamic_array)
+{
+    if (dynamic_array == NULL) {
+        printf("[ERROR] fly_free_array: para error.\n");
+        return -1;
+    }
+
+    free(dynamic_array);
+
+    dynamic_array = NULL;
+    return 1;
+}
+

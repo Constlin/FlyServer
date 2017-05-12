@@ -68,6 +68,7 @@ int fly_bind_socket(fly_listening_t *listener)
     return 1;
 }
 
+//todo: complete the logic about processing tcp connection coming and next opearation about read and write
 int fly_accept_socket(struct fly_listening *listen)
 {
     if (accept(listen->fd, listen->sockaddr, listen->addrlen) == -1) {
@@ -157,5 +158,12 @@ struct addrinfo *fly_make_addr(fly_listening_t *listener)
     }
 
     return ai;
+}
+
+void fly_free_socket(int socket) 
+{
+    close(socket);
+
+    return;
 }
 

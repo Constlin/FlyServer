@@ -25,10 +25,28 @@ fly_connection_t *fly_get_connection(fly_process_t *proc)
     	return NULL;
     }
 
+    //as the conn may reused, so need to clear the memory of the conn
+    memset(conn, 0, sizeof(fly_connection_t));
+
     proc->free_conn = conn->next_free;
     proc->conn_number--;
     proc->used_conn_number++;
 
     return conn;
+}
+
+int fly_free_connection(fly_process_t *proc, fly_connection_t *conn)
+{
+    if (proc == NULL || conn == NULL) {
+        printf("[ERROR] fly_free_connection error.\n");
+        return -1;
+    }
+
+    conn->next = proc->free_conn;
+    proc->free_conn = conn;
+    proc->used_conn_number--;
+    proc->conn_number++;
+
+    return 1;
 
 }

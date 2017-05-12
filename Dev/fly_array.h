@@ -18,6 +18,8 @@ typedef struct fly_array fly_array_t;
 
 fly_array_t *fly_array_init();
 
-int fly_array_reserve();
+int fly_array_reserve(fly_array_t *dynamic_array, int need_size);
+
+int fly_free_array(fly_array_t *dynamic_array);
 
 #endif
