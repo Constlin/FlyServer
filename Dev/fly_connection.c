@@ -48,5 +48,9 @@ int fly_free_connection(fly_process_t *proc, fly_connection_t *conn)
     proc->conn_number++;
 
     return 1;
+}
 
+int fly_prepare_after_accept()
+{
+    
 }

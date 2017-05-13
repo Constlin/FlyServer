@@ -37,6 +37,9 @@ struct fly_process {
 
     //the write event that the process cares
     fly_queue_t       *wevent_queue;
+
+    //the listener which is processed by this process
+    fly_listening_t   *listener;
 };
 
 typedef struct fly_process fly_process_t;

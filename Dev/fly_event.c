@@ -467,7 +467,7 @@ int fly_process_active(fly_core *core)
             printf("[ERROR] ev is NULL.\n");
             continue;
         } 
-        (*ev->callback)(ev->fd, ev->arg);
+        (*ev->callback)(ev->arg);
         /*
             todo: should support the persist event.
             1.if persist event,just remove from active queue.
@@ -508,7 +508,6 @@ int fly_process_active(fly_core *core)
         
 
     }
-
 
     return 0;
 }

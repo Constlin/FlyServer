@@ -69,16 +69,57 @@ int fly_bind_socket(fly_listening_t *listener)
 }
 
 //todo: complete the logic about processing tcp connection coming and next opearation about read and write
-int fly_accept_socket(struct fly_listening *listen)
+int fly_accept_socket(struct fly_process_t *process)
 {
-    if (accept(listen->fd, listen->sockaddr, listen->addrlen) == -1) {
+    int fd;
+
+    if ((fd = accept(process->fd, process->listen->sockaddr, process->listen->addrlen)) == -1) {
         printf("[ERROR] accept error.\n");
         return -1;
     }
 
-    fly_connection_t *conn = fly_get_connection(/* todo: connection pool */);
+    fly_connection_t *conn = fly_get_connection(process);
 
-    //todo: get a fly_connection for this accepted tcp connection
+    if (conn == NULL) {
+        printf("[ERROR] fly_accept_socket: get connection error.\n");
+        return -1;
+    }
+
+    fly_bin_conn_and_socket(conn, fd);
+    
+    //todo: implete this method
+    fly_prepare_after_accept()
+
+    fly_event_t *revent = malloc(sizeof(fly_event_t));
+
+    if (revent == NULL) {
+        fly_free_connection(process, conn);
+        printf("[ERROR] fly_accept_socket: malloc error.\n");
+        return -1;
+    }
+
+    if (fly_event_set(fd, fly_read_connection, &revent, FLY_EVENT_READ, NULL, process->event_core, NULL) == -1) {
+        fly_free_connection(process, conn);
+        free(revent);
+        printf("[ERROR] fly_accept_socket: fly_event_set error.\n");
+        return -1;
+    }
+
+    if (fly_event_add(revent) != 0) {
+        fly_free_connection(process, conn);
+        free(revent);
+        printf("[ERROR] fly_accept_socket: fly_event_add error.\n");
+        return -1;
+    }
+
+    if (fly_insert_queue(process->revent_queue, revent) == -1) {
+        printf("[ERROR] fly_accept_socket: fly_insert_queue error.\n");
+        return -1;
+    }
+
+    return 1;
+
+    //add the read event for this connection to fly_core
 }
 
 int fly_bind_socket_and_listen(fly_master_t *master)
@@ -107,6 +148,7 @@ int fly_bind_socket_and_listen(fly_master_t *master)
 		return -1;
 	}
 
+    //set the kernal's queue's length which used for listening  to 128
     if (listen(fd, 128) == -1) {
     	printf("[ERROR] fly_bind_socket_and_listen: listen socket error.\n");
     	fly_close_fd(fd);
@@ -165,5 +207,15 @@ void fly_free_socket(int socket)
     close(socket);
 
     return;
+}
+
+int fly_bin_conn_and_socket(fly_connection_t *conn, int fd)
+{
+    if (conn == NULL || fd < 0) {
+        return -1;
+    }
+
+    conn->fd = fd;
+    return 1;
 }
 

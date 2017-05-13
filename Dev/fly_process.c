@@ -112,6 +112,7 @@ int fly_worker_process_init(fly_master_t *master, int index)
     
     master->process_info[index] = *process;
     process->fd = ls->fd;
+    process->listener = ls;
     process->pid = pid;
     process->event_core = fly_core_init();
     process->conn_pool = fly_connection_pool_init();
@@ -141,7 +142,7 @@ int fly_worker_process_init(fly_master_t *master, int index)
     	return -1;
     }
 
-    if (fly_event_set(process->fd, fly_accept_socket, event, FLY_EVENT_READ, &process->fd, core, NULL) == -1) {
+    if (fly_event_set(process->fd, fly_accept_socket, event, FLY_EVENT_READ, process, core, NULL) == -1) {
     	printf("[ERROR] fly_worker_process_init: fly_event_set error.\n");
     	fly_core_clear(process->event_core);
     	fly_destroy_connection_pool();

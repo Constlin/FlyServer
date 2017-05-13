@@ -6,6 +6,8 @@ Author: Andrew lin
 #ifndef _FLY_CONNECTION_H
 #define _FLY_CONNECTION_H
 
+#include "fly_buf.h"
+
 struct fly_listening {
     //the listening fd.
     int                 fd;
@@ -32,7 +34,10 @@ struct fly_listening {
     int                 proto;
 
     //the handler for the listener
-    int                (*handler)(int fd, fly_process_t* proc);
+    int               (*handler)(int fd, fly_process_t* proc);
+
+    //the worker process which accept this listener.
+    fly_process_t      *process;
 
 };
 
@@ -49,10 +54,10 @@ struct fly_connection {
     struct fly_event *write;
 
     //the buffer used for read this connection's internet data.
-    struct fly_buf   *read_buf;
+    struct fly_buf_t *read_buf;
 
     //the buffer used for write data to this connection's internet.
-    struct fly_buf   *write_buf;
+    struct fly_buf_t *write_buf;
 
     //if the connection is used, set to 1, else 0
     int               used;
@@ -73,5 +78,7 @@ fly_connection_t *fly_get_connection(fly_process_t *proc);
 
 //free a connection, notice we just make it reused insted of freeing it, so while get conn we need to memset(buf, 0, bufsize)
 int fly_free_connection(fly_process_t *proc, fly_connection_t *conn);
+
+int fly_prepare_after_accept();
 
 #endif
