@@ -10,7 +10,7 @@ Author: Andrew lin
 #include "fly_process.h"
 
 struct fly_master {
-	//the array of the listenging socket
+	//the array of the listenging socket, the worker procss will only care the socket in listener
     fly_queue_t  *listener;
 
     //the number of worker process

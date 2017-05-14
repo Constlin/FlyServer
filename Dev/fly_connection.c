@@ -14,7 +14,7 @@ fly_array_t *fly_connection_pool_init()
 fly_connection_t *fly_get_connection(fly_process_t *proc)
 {
     if (proc == NULL) {
-    	return -1;
+    	return NULL;
     }
 
     fly_connection_t *conn;
@@ -31,6 +31,11 @@ fly_connection_t *fly_get_connection(fly_process_t *proc)
     proc->free_conn = conn->next_free;
     proc->conn_number--;
     proc->used_conn_number++;
+
+    if (fly_init_connection(conn) == -1) {
+        printf("[ERROR] fly_get_connection: fly_init_connection error.\n");
+        return NULL;
+    }
 
     return conn;
 }
@@ -50,7 +55,41 @@ int fly_free_connection(fly_process_t *proc, fly_connection_t *conn)
     return 1;
 }
 
-int fly_prepare_after_accept()
+int fly_init_connection(fly_connection_t *conn)
 {
+    if (conn == NULL) {
+        return -1;
+    }
+
+    if (conn->read_buf == NULL) {
+        conn->read_buf = fly_init_buf(CONNECTION_READ_BUFFER);
+        if (conn->read_buf == NULL) {
+            printf("[ERROR] fly_init_connection: fly_init_buf error.\n");
+            return -1;
+        }
+    }
+
+    if (conn->write_buf == NULL) {
+        conn->write_buf = fly_init_buf(CONNECTION_WRITE_BUFFER);
+        if (conn->write_buf == NULL) {
+            fly_free_buf(conn->read_buf);
+            printf("[ERROR] fly_init_connection: fly_init_buf error.\n");
+            return -1;
+        }
+    }
+
+    return 1;
+}
+
+int fly_read_connection(fly_connection_t *conn)
+{
+    if (conn == NULL) {
+        return -1;
+    }
+
+    if (conn->read_buf == NULL) {
+        return -1;
+    }
+
     
 }

@@ -79,6 +79,9 @@ fly_connection_t *fly_get_connection(fly_process_t *proc);
 //free a connection, notice we just make it reused insted of freeing it, so while get conn we need to memset(buf, 0, bufsize)
 int fly_free_connection(fly_process_t *proc, fly_connection_t *conn);
 
-int fly_prepare_after_accept();
+int fly_init_connection(fly_connection_t *conn);
+
+//read as many as we can from this connection
+int fly_read_connection(fly_connection_t *conn);
 
 #endif

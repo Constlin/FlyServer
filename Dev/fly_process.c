@@ -102,7 +102,6 @@ int fly_worker_process_init(fly_master_t *master, int index)
     //todo: temporarily we only listen one socket, so just get the queue's top ele.
     fly_linstening_t *ls = fly_queue_get_top(master->listener);
     pif_t pid = getpid();
-
     fly_process_t *process = malloc(sizeof(fly_process_t));
 
     if (process == NULL) {
@@ -110,6 +109,7 @@ int fly_worker_process_init(fly_master_t *master, int index)
     	return -1;
     }
     
+    //we use index to mark where the worker process stored
     master->process_info[index] = *process;
     process->fd = ls->fd;
     process->listener = ls;

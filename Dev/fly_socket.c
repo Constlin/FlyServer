@@ -73,7 +73,7 @@ int fly_accept_socket(struct fly_process_t *process)
 {
     int fd;
 
-    if ((fd = accept(process->fd, process->listen->sockaddr, process->listen->addrlen)) == -1) {
+    if ((fd = accept(process->fd, process->listener->sockaddr, process->listen->addrlen)) == -1) {
         printf("[ERROR] accept error.\n");
         return -1;
     }
@@ -85,11 +85,9 @@ int fly_accept_socket(struct fly_process_t *process)
         return -1;
     }
 
-    fly_bin_conn_and_socket(conn, fd);
+    fly_bind_conn_with_socket(conn, fd);
+    fly_bind_conn_with_listener(conn, process->listener);
     
-    //todo: implete this method
-    fly_prepare_after_accept()
-
     fly_event_t *revent = malloc(sizeof(fly_event_t));
 
     if (revent == NULL) {
@@ -122,7 +120,7 @@ int fly_accept_socket(struct fly_process_t *process)
     //add the read event for this connection to fly_core
 }
 
-int fly_bind_socket_and_listen(fly_master_t *master)
+int fly_bind_socket_with_listener(fly_master_t *master)
 {
     fly_listening_t *listener = malloc(sizeof(fly_listening_t));
 
@@ -155,6 +153,8 @@ int fly_bind_socket_and_listen(fly_master_t *master)
         free(listener);
 		return -1;
     }
+
+    //after listen fd, we don't add this to fly_core right away, we do this in worker process
 
     if (master->listener == NULL) {
     	printf("[ERROR] fly_bind_socket_and_listen: queue listener is NULL.\n");
@@ -209,13 +209,23 @@ void fly_free_socket(int socket)
     return;
 }
 
-int fly_bin_conn_and_socket(fly_connection_t *conn, int fd)
+int fly_bin_conn_with_socket(fly_connection_t *conn, int fd)
 {
     if (conn == NULL || fd < 0) {
         return -1;
     }
 
     conn->fd = fd;
+    return 1;
+}
+
+int fly_bind_conn_with_listener(fly_connection_t *conn, fly_listening_t *listener)
+{
+    if (conn == NULL || listener == NULL) {
+        return -1;
+    }
+
+    conn->listener = listener;
     return 1;
 }
 
