@@ -87,9 +87,23 @@ int fly_read_connection(fly_connection_t *conn)
         return -1;
     }
 
-    if (conn->read_buf == NULL) {
+    if (conn->read_buf == NULL || conn->length <= 0) {
         return -1;
     }
 
-    
+    int n = recv(conn->fd, conn->read_buf, conn->length, MSG_DONTWAIT);
+
+    if (n == 0) {
+    	printf("[WARN] fly_read_connection: client close the connection.\n");
+    }
+
+    if (n == -1) {
+    	printf("[ERROR] fly_read_connection: recv error.\n");
+    	return -1;
+    }
+
+    conn->read_buf->next = conn->read_buf->start + n;
+    conn->read_buf->length -= n;
+
+    return n;
 }

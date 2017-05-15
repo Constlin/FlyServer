@@ -15,8 +15,13 @@ Author: Andrew lin
 struct fly_buf {
 	//the begin of a buffer
     void *start;
+
+    //the next address that we can use
+    void *next;
+
     //the end of a buffer
     void *end;
+    
     //the length of a buffer
     int   length;    
 };
