@@ -68,6 +68,9 @@ struct fly_connection {
     //the fly_listening_t that this connection associated
     fly_listening_t  *listener;
 
+    //the process who hold this connection
+    fly_process_t    *process;
+
 };
 
 typedef struct fly_connection fly_connection_t;
