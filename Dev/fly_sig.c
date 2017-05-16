@@ -18,7 +18,9 @@ int fly_sig_init(fly_core *core)
     if (fly_make_sockepair(AF_UNIX, SOCK_STREAM, 0, core->fly_socketpair) != 0) {
         return -1;
     }
+
     printf("[DEBUG] socketpair[0]: %d, socketpair[1]: %d.\n", core->fly_socketpair[0], core->fly_socketpair[1]);
+    
     if (fly_event_set(core->fly_socketpair[0], fly_evsig_cb, &core->fly_evsig, FLY_EVENT_INTERNAL | FLY_EVENT_READ, NULL, core, NULL) != 0) {
         return -1;
     }
@@ -34,6 +36,7 @@ int fly_evsig_cb(int fd, void *arg)
     //read the fly_socketpair[0] to get the signal number.
     int signal = 0;
     int ret = 0;
+
     if (read(fd, &signal, 1) != 1) {
         printf("[ERROR] read socketpair error.\n");
         return -1;
@@ -42,6 +45,7 @@ int fly_evsig_cb(int fd, void *arg)
     //get user set signal event.
     //solution: add a map in fly_core to store the sig -- event pair, then we can use signal to get the user event.
     struct fly_queue_head *queue = fly_get_queue_by_signal(hash, signal);
+
     if (queue == NULL) {
         printf("[ERROR] fly_get_queue_by_signal error.\n");
         return -1;
@@ -49,6 +53,7 @@ int fly_evsig_cb(int fd, void *arg)
   
     //and then add all signal events at queue to active queue.
     struct fly_event* sig_event;
+
     while (fly_queue_empty(queue) != 1) {
         sig_event = fly_pop_queue(queue);
         if (sig_event == NULL) {
@@ -85,6 +90,7 @@ int fly_set_sig_handler(int sig, void (*sig_handler)(int i))
 int fly_sig_handler(int i)
 {
     printf("[INFO] FlyServer catch the signal SIGINT, and then write data to socketpair.\n");
+    
     if (evsig_fd == -1) {
     	return -1;
     }
@@ -92,6 +98,7 @@ int fly_sig_handler(int i)
     unsigned char message;
     message = i;
     int ret = write(evsig_fd, &message, sizeof(char));
+    
     if (ret != 1) {
     	return -1;
     }

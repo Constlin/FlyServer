@@ -13,6 +13,7 @@ Author: Andrew lin
 fly_minheap_p fly_minheap_init(fly_minheap_p ptr)
 {
     ptr = malloc(sizeof(struct fly_minheap));
+
     if (ptr == NULL) {
     	printf("[ERROR] malloc error.\n");
     	return NULL;
@@ -44,6 +45,7 @@ int fly_minheap_reserve(fly_minheap_p ptr, int need_size)
             if first reserve, we set the capasity is 8. if not, double.
 		*/
 		int temp_cap = ptr->fly_minheap_cap ? ptr->fly_minheap_cap * 2 : 8;
+
 		if (temp_cap < need_size) 
 			temp_cap = need_size;
 		
@@ -123,7 +125,8 @@ fly_event_p fly_minheap_top(fly_minheap_p ptr)
 //todo: incomplete
 int fly_minheap_pop(fly_minheap_p ptr)
 {
-	printf("call fly_minheap_pop.\n");
+	printf("[DEBUG] call fly_minheap_pop.\n");
+
 	if (fly_minheap_free_top(ptr) < 0) {
 		return -1;
 	}
@@ -176,6 +179,7 @@ int fly_minheap_move_last_to_top(fly_minheap_p ptr)
 int fly_minheap_top_adjust(fly_minheap_p ptr, int index)
 {
 	printf("come to fly_minheap_top_adjust. index'value: %d.\n", index);
+
 	if (ptr == NULL) {
 		return -1;
 	}
@@ -206,6 +210,7 @@ int fly_minheap_top_adjust(fly_minheap_p ptr, int index)
 
     } else if (left_event != NULL && right_event == NULL) {
         left_ret = fly_comparetime(&parent_event->time, &left_event->time);
+
         if (left_ret == 3) {
         	return 1;
         }
@@ -220,21 +225,25 @@ int fly_minheap_top_adjust(fly_minheap_p ptr, int index)
 
     } else if (left_event == NULL && right_event != NULL) {
     	right_ret = fly_comparetime(&parent_event->time, &right_event->time);
+
         if (right_ret == 3) {
         	return 1;
         }
 
         if (right_ret == 1) {
         	fly_switch(&parent_event, &right_event);
+
         	if (fly_minheap_top_adjust(ptr, right_index) != 1) {
         		return -1;
         	}
+
         	return 1;
         }
 
     } else if (left_event != NULL && right_event != NULL) {
         left_ret = fly_comparetime(&parent_event->time, &left_event->time);
         right_ret = fly_comparetime(&parent_event->time, &right_event->time);
+
 	    if (left_ret == 3 && right_ret == 3) {
 	    	//the top event's time is less than his left and right child.
 	    	//we just return without doing anything.
@@ -245,39 +254,48 @@ int fly_minheap_top_adjust(fly_minheap_p ptr, int index)
 	    	//the top event's time > left child but < right child.
 	    	//we switch the parent one and his left one.
 	    	fly_switch(&parent_event, &left_event);
+
 	    	if (fly_minheap_top_adjust(ptr, left_index) != 1) {
 	    		return -1;
 	    	}
+
 	    	return 1;
 	    }
     
 	    if (left_ret == 3 && right_ret == 1) {
 	    	//switch the parent one and his right one.
 	    	fly_switch(&parent_event, &right_event);
+
 	    	if (fly_minheap_top_adjust(ptr, right_index) != 1) {
 	    		return -1;
 	    	}
+
 	    	return 1;
 	    }
     
 	    if (left_ret == 1 && right_ret == 1) {
 	    	//in this situation, we choose the smaller one between left and right.
 	    	int ret = fly_comparetime(&left_event->time, &right_event->time);
+
 	    	if (ret == 1) {
 	    		//choose right one wo switch with parent one.
 	    		fly_switch(&parent_event, &right_event);
+
 	    		if (fly_minheap_top_adjust(ptr, right_index) != 1) {
 	    		    return -1;
 	    	    }
+
 	    	    return 1;
 	    	} 
     
 	    	if (ret == 3) {
 	    		//choose left one wo switch with parent one.
 	    		fly_switch(&parent_event, &left_event);
+
 	    	    if (fly_minheap_top_adjust(ptr, left_index) != 1) {
 	    		    return -1;
 	    	    }
+
 	    	    return 1;
 	    	}
             
@@ -324,10 +342,13 @@ int fly_minheap_time_adjust(fly_minheap_p ptr)
 	}
 
 	fly_event_p top_event = fly_minheap_top(ptr);
+
 	for (int i = 0; i < ptr->fly_minheap_size - 1; ++i) {
         fly_time_sub((ptr->fly_event)[i+1]->time, (ptr->fly_event)[i+1]->time, &(top_event->user_settime));
 	}
+
     printf("test log. fly_minheap's size: %d.\n", ptr->fly_minheap_size);
+    
 	for(int i = 0; i < ptr->fly_minheap_size; ++i) {
 		printf("event's ptr: %p, event's time ptr: %p, test log. tv_sec: %d, tv_usec: %d.\n", (ptr->fly_event)[i], (ptr->fly_event)[i]->time, (ptr->fly_event)[i]->time->tv_sec, (ptr->fly_event)[i]->time->tv_usec);
 	}

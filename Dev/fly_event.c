@@ -333,6 +333,7 @@ int fly_event_remove_from_epoll(fly_event *event)
 {
     struct epoll_event epev;
     epev.data.fd = event->fd;
+
     if (event->flags & FLY_EVENT_READ) {
         epev.events = EPOLLIN;
     } else if (event->flags & FLY_EVENT_WRITE) {
@@ -340,6 +341,7 @@ int fly_event_remove_from_epoll(fly_event *event)
     } else {
         printf("[ERROR] what's this event?\n");
     }
+
     if (epoll_ctl(event->core->ep_info->epoll_fd, EPOLL_CTL_DEL, event->fd, &epev) == -1) {
         printf("[ERROR] epoll del error.\n");
         return -1;
@@ -355,16 +357,19 @@ int fly_event_dispatch(fly_core *core)
     struct timeval *tv;
     long timeout;
     qHead *head = core->fly_io_queue;
+
     if (head == NULL) {
         printf("[ERROR] queue head error.\n");
         return -1;
     }
+
     //get the min-heap's top event's timeout, remember after this
     //operation this event is still in the min-heap.
     timeout = fly_event_get_timeout(core);
     printf("[DEBUG] the timeout is: %d.\n", timeout);
     int nfds = epoll_wait(core->ep_info->epoll_fd, core->ep_info->events, core->ep_info->nevents, timeout);
     printf("[DEBUG] epoll_wait over. nfds: %d, timeout: %d.\n", nfds, timeout);
+
     if (nfds < 0) {
         if (errno != EINTR) {
             perror("[ERROR] epoll wait error.\n");
@@ -425,20 +430,23 @@ int fly_event_dispatch(fly_core *core)
 
 fly_event *fly_use_fd_find_event(int fd, qHead head)
 {
-    fly_event *ev;
     if (head == NULL || fd < 0) {
         printf("[ERROR] queue head is NULL or fd < 0.\n");
         return NULL;
     }
 
     qPtr qp = head->first;
+
     if (qp == NULL) {
         printf("[ERROR] qp is NULL.\n");
         return NULL;
     }
 
+    fly_event *ev;
+
     for (; qp != NULL; qp = qp->next) {
         ev = qp->ele;
+
         if (fd == ev->fd) {
             return qp->ele;
         } else {
@@ -455,18 +463,22 @@ int fly_process_active(fly_core *core)
     struct timeval tv;
     tv.tv_sec = 0;
     tv.tv_usec = 0;
+
     if (core == NULL) {
         printf("[ERROR] core is NULL.\n");
         return -1;
     }
     
     qPtr qp = NULL;
+
     for (qp = core->fly_active_queue->first; qp != NULL; qp = qp->next) {
         ev = qp->ele;
+
         if (ev == NULL) {
             printf("[ERROR] ev is NULL.\n");
             continue;
         } 
+
         (*ev->callback)(ev->arg);
         /*
             todo: should support the persist event.
@@ -495,18 +507,13 @@ int fly_process_active(fly_core *core)
                 return -1;
             }
 
-        } else if ((fly_delete_queue(core->fly_active_queue, ev) != 1) /*|| fly_delete_queue(core->fly_io_queue, ev) != 1*/) {
-            
+        } else if ((fly_delete_queue(core->fly_active_queue, ev) != 1) /*|| fly_delete_queue(core->fly_io_queue, ev) != 1*/) {           
             printf("[ERROR] remove ele from active queue/io queue error.\n");
             return -1;
-
         } else {
             ev->status = FLY_LIST_ACTIVE; //if not set this, after delete event at queue,next cycle can't add this event to true queue.
             printf("[DEBUG] remove unpersist event successfully.\n");
-
         }
-        
-
     }
 
     return 0;
@@ -517,6 +524,7 @@ long fly_event_get_timeout(fly_core *core)
     long timeout;
     struct timeval tv;
     fly_event_p ev = fly_minheap_top(core->fly_timeout_minheap);
+    
     if (ev != NULL) {
         printf("[DEBUG] test log. ev's pointer: %p. tv_sec: %d, tv_usec: %d.\n", ev, ev->time->tv_sec, ev->time->tv_usec);
     }

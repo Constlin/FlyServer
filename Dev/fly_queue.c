@@ -12,10 +12,12 @@ Author: Andrew lin
 qHead fly_init_queue() 
 {
     qHead queue = malloc(sizeof(struct fly_queue_head));
+
     if (!queue) {
     	printf("malloc error.\n");
         return NULL;
     }
+    
     queue->first = NULL;
     queue->last = NULL;
     return queue;
@@ -29,10 +31,12 @@ int fly_insert_queue(qHead queue, void *ele)
     }
     
     qPtr qptr = malloc(sizeof(struct fly_queue_node));
+
     if (!qptr) {
     	printf("malloc error.\n");
         return -1;
     }
+
     qptr->ele = ele;
     qptr->next = NULL;
 
@@ -44,6 +48,7 @@ int fly_insert_queue(qHead queue, void *ele)
     	queue->last->next = qptr;
     	queue->last = qptr;
     }
+
     return 0;
 }
 
@@ -76,14 +81,17 @@ int fly_delete_queue(qHead queue, void *ele)
     qPtr pt_before = queue->first;  
     qPtr pt_next = pt->next;
     int ret = 0;
+
     for (; pt != NULL; pt_before = pt, pt = pt->next) {
         if (pt->ele == ele && pt == pt_before) {           
             //head
             free(pt);
+
             if (pt_next == NULL) {
                 queue->first = queue->last = NULL;
                 return 1;
             }
+
             queue->first = pt_next;
             ret = 1;
             break;           
@@ -105,6 +113,7 @@ int fly_delete_queue(qHead queue, void *ele)
             }
         }             
     }
+
     return ret;
 }
 
@@ -117,6 +126,7 @@ int fly_queue_length(qHead queue)
 {
     qPtr temp = queue->first;
     int len = 0;
+
     while(temp != NULL) {
         len++;
         temp = temp->next;

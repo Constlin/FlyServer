@@ -13,6 +13,7 @@ fly_hash_p fly_hash_init()
 {
 	fly_hash_p hash;
 	hash = malloc(sizeof(struct fly_hash));
+
 	if (hash == NULL) {
 		printf("[ERROR] malloc error.\n");
 		return NULL;
@@ -61,10 +62,12 @@ int fly_hash_reserve(fly_hash_p hash, int size)
         //set the new realloc's ele NULL.
 		for (int i = before_capa; i <= temp_cap; i++) {
 			temp_sig_array[i] = malloc(sizeof(struct fly_sig));
+
 			if (temp_sig_array[i] == NULL) {
 				printf("[ERROR] malloc error.\n");
 				return -1;
 			}
+            
 			temp_sig_array[i]->fly_queue = NULL;
 			temp_sig_array[i]->fly_queue_len = 0;			
 		}
