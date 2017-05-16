@@ -66,7 +66,7 @@ void fifo_read()
 }
 
 
-void main() 
+void test_io_main() 
 {
     fly_event event;
     int flag1 = 0, flag2 = 0;

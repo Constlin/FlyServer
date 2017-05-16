@@ -59,4 +59,6 @@ int fly_worker_process_init(fly_master_t *master, int index);
 
 int fly_worker_process_cycle(fly_master_t *master, int index);
 
+int fly_destroy_connection_pool(fly_process_t *process);
+
 #endif

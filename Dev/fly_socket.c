@@ -123,7 +123,7 @@ int fly_accept_socket(fly_process_t *process)
     //add the read event for this connection to fly_core
 }
 
-int fly_bind_socket_with_listener(fly_master_t *master)
+int fly_bind_socket_and_listen(fly_master_t *master)
 {
     fly_listening_t *listener = malloc(sizeof(fly_listening_t));
 

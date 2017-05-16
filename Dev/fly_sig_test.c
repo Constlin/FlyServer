@@ -13,7 +13,7 @@ void signal_cb()
 }
 
 
-void main()
+void test_sig_main()
 {
 	fly_event sig_event;
 	fly_core *core = fly_core_init();

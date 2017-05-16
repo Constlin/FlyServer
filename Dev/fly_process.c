@@ -137,7 +137,7 @@ int fly_worker_process_init(fly_master_t *master, int index)
     if (event == NULL) {
     	printf("[ERROR] fly_worker_process_init: malloc error.\n");
     	fly_core_clear(process->event_core);
-    	fly_destroy_connection_pool();
+    	fly_destroy_connection_pool(process);
     	free(process);
     	return -1;
     }
@@ -145,7 +145,7 @@ int fly_worker_process_init(fly_master_t *master, int index)
     if (fly_event_set(process->fd, fly_accept_socket, event, FLY_EVENT_READ, process, process->event_core, NULL) == -1) {
     	printf("[ERROR] fly_worker_process_init: fly_event_set error.\n");
     	fly_core_clear(process->event_core);
-    	fly_destroy_connection_pool();
+    	fly_destroy_connection_pool(process);
     	free(event);       
     	free(process);
         return -1;
@@ -154,7 +154,7 @@ int fly_worker_process_init(fly_master_t *master, int index)
     if (fly_event_add(event) != 0) {
         printf("[ERROR] fly_worker_process_init: fly_event_add error.\n");
         fly_core_clear(process->event_core);
-    	fly_destroy_connection_pool();
+    	fly_destroy_connection_pool(process);
     	free(event);  
     	free(process);
     	return -1;
@@ -180,4 +180,18 @@ int fly_worker_process_cycle(fly_master_t *master, int index)
     for( ; ;) {
         fly_core_cycle(process.event_core);
     }
+}
+
+int fly_destroy_connection_pool(fly_process_t *process)
+{
+    if (process == NULL) {
+        return -1;
+    }
+
+    if (process->conn_pool) {
+        fly_free_array(process->conn_pool);
+        return 1;
+    }
+
+    return -1;
 }

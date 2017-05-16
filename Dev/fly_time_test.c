@@ -13,7 +13,7 @@ void time_out()
 }
 
 
-void main()
+void test_time_main()
 {
     fly_event event;
 
