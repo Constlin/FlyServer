@@ -6,15 +6,14 @@ Author: Andrew lin
 #ifndef _FLY_PROCESS_H
 #define _FLY_PROCESS_H
 
-#define MAX_PROCESS_NUMBER 1024
-
-#include "fly_server.h"
+#include <unistd.h>
+#include "fly_core_file.h"
 
 struct fly_process {
 	pid_t              pid;
     
     //one worker process associated one core
-	fly_core          *event_core;
+	fly_core_t        *event_core;
 
     //one worker process associated one connection pool, free_conn is the next available fly_connection_t
     fly_connection_t  *free_conn;

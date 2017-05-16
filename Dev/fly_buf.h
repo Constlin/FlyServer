@@ -31,6 +31,6 @@ typedef struct fly_buf fly_buf_t;
 //get a buffer of bytes and return
 fly_buf_t *fly_init_buf(int bytes);
 
-int fly_free_buf(fly_buf_t *buf)
+int fly_free_buf(fly_buf_t *buf);
 
 #endif

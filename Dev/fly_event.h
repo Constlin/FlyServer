@@ -24,7 +24,10 @@ Author: Andrew lin
 #define FLY_CTL_DEL 0x02
 #define FLY_CTL_MOD 0X04
 
+//todo: remove this typedef 'typedef struct fly_event fly_event;'
 typedef struct fly_event fly_event;
+
+typedef struct fly_event fly_event_t;
 
 typedef struct fly_event* fly_event_p;
 
@@ -68,7 +71,7 @@ struct fly_event {
     /*
       callback for the event
     */
-    void (*callback)(int,void *);
+    void (*callback)(void*);
 
     fly_core *core;
 };

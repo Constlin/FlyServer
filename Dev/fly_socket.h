@@ -6,16 +6,22 @@ Author: Andrew lin
 #ifndef _FLY_SOCKET_H
 #define _FLY_SOCKET_H
 
+#define FLY_LOCAL_ADDRESS "127.0.0.1"
+#define FLY_LOCAL_PORT     80
+
+#include <sys/socket.h>
+#include <netdb.h>
 #include "fly_server.h"
 #include "fly_connection.h"
+#include "fly_process.h"
 
-int fly_bind_socket(const char *addr, int port);
+int fly_bind_socket(fly_listening_t *listener);
 
 struct addrinfo *fly_make_addr(fly_listening_t *listener);
 
 int fly_create_worker(const char *addr, int port);
 
-int fly_accept_socket(int fd);
+int fly_accept_socket(fly_process_t *process);
 
 int fly_bind_socket_with_listener(fly_master_t *master);
 

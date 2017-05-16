@@ -1,4 +1,5 @@
-#include "fly_server.c"
+#include <stdio.h>
+#include "fly_core_file.h"
 
 int main()
 {

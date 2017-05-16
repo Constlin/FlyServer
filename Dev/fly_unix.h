@@ -3,10 +3,11 @@ system's method's package and other thing about system.
 
 Author: Andrew lin
 ********************************/
-#ifndef _FLY_CONNECTION_H
-#define _FLY_CONNECTION_H
+#ifndef _FLY_UNIX_H
+#define _FLY_UNIX_H
 
-#include "fly_connection.h"
+#include <errno.h>
+#include "fly_core_file.h"
 
 /* 
    if recv return >= 0, we just return the number. 

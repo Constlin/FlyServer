@@ -6,7 +6,8 @@ Author: Andrew lin
 #ifndef _FLY_CONNECTION_H
 #define _FLY_CONNECTION_H
 
-#include "fly_buf.h"
+#include <sys/socket.h>
+#include "fly_core_file.h"
 
 struct fly_listening {
     //the listening fd.
@@ -16,7 +17,7 @@ struct fly_listening {
     struct sockaddr    *sockaddr;
 
     //sockaddr's length
-    socketlen_t        *addrlen;
+    socklen_t          *addrlen;
 
     //listener binding address
     char               *addr;
@@ -54,10 +55,10 @@ struct fly_connection {
     struct fly_event *write;
 
     //the buffer used for read this connection's internet data.
-    struct fly_buf_t *read_buf;
+    fly_buf_t *read_buf;
 
     //the buffer used for write data to this connection's internet.
-    struct fly_buf_t *write_buf;
+    fly_buf_t *write_buf;
 
     //if the connection is used, set to 1, else 0
     int               used;

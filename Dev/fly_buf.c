@@ -6,10 +6,13 @@ Author: Andrew lin
 ********************************/
 #include <malloc.h>
 #include "fly_buf.h"
-#include 
 
 fly_buf_t *fly_init_buf(int bytes)
 {
+    if (bytes <= 0) {
+        return NULL;
+    }
+
     fly_buf_t *buf = malloc(sizeof(fly_buf_t));
 
     if (buf == NULL) {
@@ -23,8 +26,8 @@ fly_buf_t *fly_init_buf(int bytes)
     	return NULL;
     }
 
-    buf->next = start;
-    buf->end = start + bytes;
+    buf->next = buf->start;
+    buf->end = buf->start + bytes;
     buf->length = bytes;
 
     return buf;

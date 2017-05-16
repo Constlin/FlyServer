@@ -3,9 +3,8 @@ operation about connection pool.
 
 Author: Andrew lin
 ********************************/
-#include "fly_connection.h"
-#include "fly_event.h"
-#include "fly_array.h"
+#include <stdio.h>
+#include "fly_core_file.h"
 
 fly_array_t *fly_connection_pool_init()
 {
@@ -49,7 +48,7 @@ int fly_free_connection(fly_process_t *proc, fly_connection_t *conn)
         return -1;
     }
 
-    conn->next = proc->free_conn;
+    conn->next_free = proc->free_conn;
     proc->free_conn = conn;
     proc->used_conn_number--;
     proc->conn_number++;
@@ -66,7 +65,7 @@ int fly_free_connection(fly_process_t *proc, fly_connection_t *conn)
     	free(conn->read);
     }
 
-    if (conn->wirte) {
+    if (conn->write) {
     	free(conn->write);
     }
 
@@ -126,11 +125,11 @@ int fly_read_connection(fly_connection_t *conn)
         return -1;
     }
 
-    if (conn->read_buf == NULL || conn->length <= 0) {
+    if (conn->read_buf == NULL || conn->read_buf->length <= 0) {
         return -1;
     }
 
-    int n = fly_recv(conn->fd, conn->read_buf, conn->length);
+    int n = fly_recv(conn->fd, conn->read_buf, conn->read_buf->length);
 
     if (n == 0) {
     	printf("[WARN] fly_read_connection: client close the connection.\n");
@@ -145,7 +144,7 @@ int fly_read_connection(fly_connection_t *conn)
     if (n == FLY_AGAIN) {
     	//add this read event to fly_core again
     	//todo: find this revent in process's revent_queue
-    	fly_event_t *revent = fly_use_fd_find_event(fd, conn->process->revent_queue);
+    	fly_event_t *revent = fly_use_fd_find_event(conn->fd, conn->process->revent_queue);
 
     	if (revent == NULL) {
             printf("[ERROR] fly_read_connection: fly_use_fd_find_event return NULL.\n");

@@ -3,13 +3,14 @@ operation about dynamic array
 
 Author: Andrew lin
 ********************************/
+#include <stdio.h>
 #include "fly_array.h"
 
 fly_array_t *fly_array_init()
 {
-    fly_array_t *dynamic_array = malloc(sizeof(struct fly_array_t));
+    fly_array_t *dynamic_array = malloc(sizeof(fly_array_t));
 
-    if (array == NULL) {
+    if (dynamic_array == NULL) {
     	printf("[ERROR] fly_array_init: malloc error.\n");
     	return NULL;
     }

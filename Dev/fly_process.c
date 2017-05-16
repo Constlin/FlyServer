@@ -3,9 +3,11 @@ operation about worker and master process.
 
 Author: Andrew lin
 ********************************/
-#include "fly_process.h"
+#include <signal.h>
+#include <stdio.h>
+#include <sys/resource.h>
 #include "fly_socket.h"
-#include "fly_event.h"
+#include "fly_core_file.h"
 
 int fly_multiprocess_mode(fly_master_t *master)
 {
@@ -76,12 +78,10 @@ int fly_create_process(fly_master_t *master, int index)
 		case -1:
 		    printf("[ERROR] fly_create_process: fork error.\n");
 		    return -1;
-
 		case 0:
 		    //worker process
 		    fly_worker_process_cycle(master, index);
 		    break;
-
 		default:
 		    //master process
 		    break;
@@ -100,8 +100,8 @@ int fly_worker_process_init(fly_master_t *master, int index)
     }
 
     //todo: temporarily we only listen one socket, so just get the queue's top ele.
-    fly_linstening_t *ls = fly_queue_get_top(master->listener);
-    pif_t pid = getpid();
+    fly_listening_t *ls = fly_queue_get_top(master->listener);
+    pid_t pid = getpid();
     fly_process_t *process = malloc(sizeof(fly_process_t));
 
     if (process == NULL) {
@@ -125,13 +125,13 @@ int fly_worker_process_init(fly_master_t *master, int index)
     	return -1;
     } 
 
-    if (process->conn == NULL) {
+    if (process->conn_pool == NULL) {
     	printf("[ERROR] fly_worker_process_init: fly_connection_pool_init error.\n");
     	fly_core_clear(process->event_core);
     	free(process);
     	return -1;
     }
-
+    
     fly_event *event = malloc(sizeof(fly_event));
 
     if (event == NULL) {
@@ -142,7 +142,7 @@ int fly_worker_process_init(fly_master_t *master, int index)
     	return -1;
     }
 
-    if (fly_event_set(process->fd, fly_accept_socket, event, FLY_EVENT_READ, process, core, NULL) == -1) {
+    if (fly_event_set(process->fd, fly_accept_socket, event, FLY_EVENT_READ, process, process->event_core, NULL) == -1) {
     	printf("[ERROR] fly_worker_process_init: fly_event_set error.\n");
     	fly_core_clear(process->event_core);
     	fly_destroy_connection_pool();
@@ -174,8 +174,10 @@ int fly_worker_process_cycle(fly_master_t *master, int index)
     	printf("[ERROR] fly_worker_process_cycle: worker process init error.\n");
     	return -1;
     }
+    
+    fly_process_t process = master->process_info[index];
 
     for( ; ;) {
-        fly_core_cycle((master->process_info[index])->event_core);
+        fly_core_cycle(process.event_core);
     }
 }

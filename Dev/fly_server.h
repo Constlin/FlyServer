@@ -6,8 +6,9 @@ Author: Andrew lin
 #ifndef _FLY_SERVER_H
 #define _FLY_SERVER_H
 
-#include "fly_queue.h"
-#include "fly_process.h"
+#define MAX_PROCESS_NUMBER 1024
+
+#include "fly_core_file.h"
 
 struct fly_master {
 	//the array of the listenging socket, the worker procss will only care the socket in listener

@@ -3,10 +3,12 @@ operation about socket, like bind listen, etc
 
 Author: Andrew lin
 ********************************/
+#include <sys/socket.h>
 #include "fly_util.h"
 #include "fly_socket.h"
 #include "fly_connection.h"
 #include "fly_queue.h"
+#include "fly_event.h"
 
 int fly_bind_socket(fly_listening_t *listener)
 {
@@ -28,7 +30,7 @@ int fly_bind_socket(fly_listening_t *listener)
     	return -1;
     }
 
-	int fd = socket(AF_INET, SOCK_STREAM, IPPROTO_CP);
+	int fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
 	if (fd == -1) {
 		printf("[ERROR] create socket error.\n");
@@ -38,7 +40,7 @@ int fly_bind_socket(fly_listening_t *listener)
     listener->fd     = fd;
     listener->family = AF_INET;
     listener->type   = SOCK_STREAM;
-    listener->proto  = IPPROTO_CP;
+    listener->proto  = IPPROTO_TCP;
 
 	if (fly_set_nonblocking(fd) == -1) {
 		fly_close_fd(fd);
@@ -51,29 +53,30 @@ int fly_bind_socket(fly_listening_t *listener)
 	}
 
     //after call close(fd), the socket fd will process TIME_WAIT and then closed.
-    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void *)&on, sizeof(on)) == -1) {
+    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void *)&open, sizeof(open)) == -1) {
     	fly_close_fd(fd);
 		return -1;
     }
 
-    if (bind(fd, ai->ai_addr, (socketlen_t)ai->ai_addrlen) == -1) {
+    if (bind(fd, ai->ai_addr, (socklen_t)ai->ai_addrlen) == -1) {
     	printf("[ERROR] bin socket error.\n");
     	fly_close_fd(fd);
 		return -1;
     }
 
     listener->sockaddr = ai->ai_addr;
-    listener->addrlen  = (socketlen_t)ai->ai_addrlen;
+    listener->addrlen  = (socklen_t)ai->ai_addrlen;
 
     return 1;
 }
 
 //todo: complete the logic about processing tcp connection coming and next opearation about read and write
-int fly_accept_socket(struct fly_process_t *process)
+//called when the listen socket has data
+int fly_accept_socket(fly_process_t *process)
 {
     int fd;
 
-    if ((fd = accept(process->fd, process->listener->sockaddr, process->listen->addrlen)) == -1) {
+    if ((fd = accept(process->fd, process->listener->sockaddr, process->listener->addrlen)) == -1) {
         printf("[ERROR] accept error.\n");
         return -1;
     }
@@ -129,8 +132,8 @@ int fly_bind_socket_with_listener(fly_master_t *master)
         return -1;
     }
 
-    listener->addr = addr;
-    listener->port = port;
+    listener->addr = FLY_LOCAL_ADDRESS;
+    listener->port = FLY_LOCAL_PORT;
 
 	if (fly_bind_socket(listener) != 1) {
         printf("[ERROR] fly_bind_socket_and_listen: fly_bind_socket error.\n");
@@ -166,7 +169,7 @@ int fly_bind_socket_with_listener(fly_master_t *master)
     	return -1;
     }
 
-    printf("[DEBUG] fly_bind_socket_and_listen successfully, addr: %s, port: %d", listener->addr, listener->port)
+    printf("[DEBUG] fly_bind_socket_and_listen successfully, addr: %s, port: %d", listener->addr, listener->port);
 
     return 1;
 }
@@ -209,7 +212,7 @@ void fly_free_socket(int socket)
     return;
 }
 
-int fly_bin_conn_with_socket(fly_connection_t *conn, int fd)
+int fly_bind_conn_with_socket(fly_connection_t *conn, int fd)
 {
     if (conn == NULL || fd < 0) {
         return -1;
