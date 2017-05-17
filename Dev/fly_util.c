@@ -203,9 +203,13 @@ int fly_int_to_char(int n, char *c)
     return 1;
 }
 
-void *fly_search_array(int *array, int length, int obj)
+void *fly_binary_search(int *array, int length, int obj)
 {
     if (array == NULL || length <= 0) {
+        return NULL;
+    }
+
+    if (obj < array[left] || obj > array[right]) {
         return NULL;
     }
 
@@ -213,20 +217,22 @@ void *fly_search_array(int *array, int length, int obj)
     int right = left + length - 1;
     int mid = (left + right) / 2;
 
-    if (obj < array[left] || obj > array[right]) {
-        return NULL;
-    }
+    while (left <= right) {
+        if (obj < array[mid]) {
+            right = mid - 1;
+            mid = (left + right) / 2;
+            continue;
+        } 
 
-    if (obj < array[mid]) {
-        return fly_search_array(array, mid, obj);
-    } 
-
-    if (obj > array[mid]) {
-        return fly_search_array(array + mid + 1, length - mid - 1, obj);
-    }
-
-    if (obj == array[mid]) {
-        return array + mid;
+        if (obj > array[mid]) {
+            left = mid + 1;
+            mid = (left + right) / 2;
+            continue;
+        }
+    
+        if (obj == array[mid]) {
+            return array + mid;
+        }
     }
 
     return NULL;
