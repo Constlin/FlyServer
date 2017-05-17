@@ -203,6 +203,35 @@ int fly_int_to_char(int n, char *c)
     return 1;
 }
 
+void *fly_search_array(int *array, int length, int obj)
+{
+    if (array == NULL || length <= 0) {
+        return NULL;
+    }
+
+    int left = 0;
+    int right = left + length - 1;
+    int mid = (left + right) / 2;
+
+    if (obj < array[left] || obj > array[right]) {
+        return NULL;
+    }
+
+    if (obj < array[mid]) {
+        return fly_search_array(array, mid, obj);
+    } 
+
+    if (obj > array[mid]) {
+        return fly_search_array(array + mid + 1, length - mid - 1, obj);
+    }
+
+    if (obj == array[mid]) {
+        return array + mid;
+    }
+
+    return NULL;
+}
+
 
 /************************************************
     below is test code for fly_util

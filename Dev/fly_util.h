@@ -32,4 +32,8 @@ int fly_close_fd(int fd);
 
 int fly_int_to_char(int n, char *c);
 
+//find obj in array
+//notice: the array need sorted by little to large already
+void *fly_search_array(int *array, int length, int obj)；
+
 #endif
