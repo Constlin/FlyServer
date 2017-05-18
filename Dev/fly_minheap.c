@@ -123,7 +123,6 @@ fly_event_p fly_minheap_top(fly_minheap_p ptr)
 	return NULL;
 }
 
-//todo: incomplete
 int fly_minheap_pop(fly_minheap_p ptr)
 {
 	printf("[DEBUG] call fly_minheap_pop.\n");
@@ -355,9 +354,11 @@ int fly_minheap_time_adjust(fly_minheap_p ptr)
 
     printf("test log. fly_minheap's size: %d.\n", ptr->fly_minheap_size);
     
+    /*
 	for(int i = 0; i < ptr->fly_minheap_size; ++i) {
 		printf("event's ptr: %p, event's time ptr: %p, test log. tv_sec: %ld, tv_usec: %ld.\n", (ptr->fly_event)[i], (ptr->fly_event)[i]->time, (ptr->fly_event)[i]->time->tv_sec, (ptr->fly_event)[i]->time->tv_usec);
 	}
+    */
 
 	return 1;
 }

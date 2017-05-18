@@ -72,7 +72,7 @@ fly_core *fly_core_init()
     return core;
 }
 
-int fly_event_set(int fd, void (*callback)(void *), fly_event *ev, int flags, void *arg, fly_core *core, struct timeval *tv)
+int fly_event_set(int fd, void (*callback)(int fd, void *arg), fly_event *ev, int flags, void *arg, fly_core *core, struct timeval *tv)
 {
     //If timeout event, the tv should me sec level. It means that the tv_sec shuold > 0.
     if (callback == NULL || ev == NULL  || core == NULL) {
@@ -244,7 +244,7 @@ void fly_core_cycle(fly_core *core)
 {
     while(1) {
         if (core == NULL) {
-            printf("[ERROR] core is NULL.\n");
+            printf("[ERROR] fly_core_cycle: core is NULL.\n");
             return;
         }
 
@@ -467,7 +467,7 @@ int fly_process_active(fly_core *core)
     tv.tv_usec = 0;
 
     if (core == NULL) {
-        printf("[ERROR] core is NULL.\n");
+        printf("[ERROR] fly_process_active: core is NULL.\n");
         return -1;
     }
     
@@ -481,7 +481,7 @@ int fly_process_active(fly_core *core)
             continue;
         } 
 
-        (*ev->callback)(ev->arg);
+        (*ev->callback)(ev->fd, ev->arg);
         /*
             todo: should support the persist event.
             1.if persist event,just remove from active queue.

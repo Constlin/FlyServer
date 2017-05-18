@@ -15,7 +15,7 @@ static int fds[2];
 
 void fifo_read() 
 {
-    printf("fifo_read: is here.\n");
+    printf("[INFO] fifo_read: is here.\n");
     char *buf = malloc(10);
 
     if (buf == NULL) {
@@ -65,7 +65,7 @@ void fifo_read()
         }
     }
 
-    printf("buf: %s\n",buf);
+    printf("[INFO] buf: %s\n",buf);
 }
 
 

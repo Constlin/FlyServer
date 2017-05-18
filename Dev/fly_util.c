@@ -119,10 +119,12 @@ int fly_make_sockepair(int domain, int type, int protocol, int array[2])
         if (fly_set_nonblocking(array[0]) || 
             fly_set_nonblocking(array[1]) ||
             fly_set_closeonexec(array[0]) ||
-            fly_set_closeonexec(array[1])) {
+            fly_set_closeonexec(array[1])) 
+        {
             printf("[DEBUG] close socketpair.\n");
             fly_close_fd(array[0]);
             fly_close_fd(array[1]); 
+            return -1;
         }    
         return 0;                  
     } else {
@@ -152,6 +154,7 @@ int fly_set_nonblocking(int fd)
         }
     }
 
+    printf("[INFO] fly_set_nonblocking: set %d nonblocking.\n", fd);
     return 0;
 }
 

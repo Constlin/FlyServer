@@ -9,7 +9,7 @@ author: Andrew lin
 
 void signal_cb()
 {
-	printf("singla_cb called.\n");
+	printf("[INFO] singla_cb called.\n");
 }
 
 
@@ -19,7 +19,7 @@ void test_sig_main()
 	fly_core *core = fly_core_init();
 
 	if (fly_event_set(SIGINT, signal_cb, &sig_event, FLY_EVENT_SIG, NULL, core, NULL) == -1) {
-        printf("fly_event_set error.\n");
+        printf("[ERROR] fly_event_set error.\n");
         return;
     }
 

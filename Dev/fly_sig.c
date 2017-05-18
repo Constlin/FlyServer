@@ -38,7 +38,7 @@ int fly_evsig_cb(int fd, void *arg)
     //read the fly_socketpair[0] to get the signal number.
     int signal = 0;
     int ret = 0;
-
+    
     if (read(fd, &signal, 1) != 1) {
         printf("[ERROR] read socketpair error.\n");
         return -1;
@@ -68,6 +68,8 @@ int fly_evsig_cb(int fd, void *arg)
             printf("[ERROR] signal event insert to active queue error.\n");
             return -1;
         }
+
+        printf("[INFO] signal event insert to active queue successfully.\n");
     }
 
     return 1;
@@ -120,9 +122,11 @@ struct fly_queue_head *fly_get_queue_by_signal(struct fly_hash *hash, int signal
             return NULL;
         }
 
+        printf("[DEBUG] fly_get_queue_by_signal: return successfully.\n");
         return (hash->fly_sig_array[signal])->fly_queue;
     }
 
+    printf("[DEBUG] fly_get_queue_by_signal: hash->fly_sig_array is NULL.\n");
     return NULL;
 }
 
