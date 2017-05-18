@@ -203,19 +203,20 @@ int fly_int_to_char(int n, char *c)
     return 1;
 }
 
-void *fly_binary_search(int *array, int length, int obj)
+
+int *fly_binary_search(int *array, int length, int obj)
 {
     if (array == NULL || length <= 0) {
-        return NULL;
-    }
-
-    if (obj < array[left] || obj > array[right]) {
         return NULL;
     }
 
     int left = 0;
     int right = left + length - 1;
     int mid = (left + right) / 2;
+
+    if (obj < array[left] || obj > array[right]) {
+        return NULL;
+    }
 
     while (left <= right) {
         if (obj < array[mid]) {

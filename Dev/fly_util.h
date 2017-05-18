@@ -34,6 +34,6 @@ int fly_int_to_char(int n, char *c);
 
 //find obj in array
 //notice: the array need sorted by little to large already
-void *fly_binary_search_array(int *array, int length, int obj)；
+int *fly_binary_search_array(int *array, int length, int obj);
 
 #endif
