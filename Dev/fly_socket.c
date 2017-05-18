@@ -3,7 +3,10 @@ operation about socket, like bind listen, etc
 
 Author: Andrew lin
 ********************************/
+#include <stdio.h>
 #include <sys/socket.h>
+#include <stdlib.h>
+#include <string.h>
 #include "fly_util.h"
 #include "fly_socket.h"
 #include "fly_connection.h"
@@ -178,12 +181,12 @@ struct addrinfo *fly_make_addr(fly_listening_t *listener)
 {
     if (listener == NULL) {
         printf("[ERROR] fly_make_addr: listener is null.\n");
-        return -1;
+        return NULL;
     }
 
     if (listener->addr == NULL || listener->port < 0) {
         printf("[ERROR] fly_make_addr: listener has null.\n");
-        return -1;
+        return NULL;
     }
 
     struct addrinfo hints;
@@ -199,7 +202,7 @@ struct addrinfo *fly_make_addr(fly_listening_t *listener)
     fly_int_to_char(listener->port, strport);
 
     if (getaddrinfo(listener->addr, strport, &hints, &ai) != 0) {
-    	return -1;
+    	return NULL;
     }
 
     return ai;

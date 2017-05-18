@@ -75,7 +75,8 @@ int fly_minheap_insert(fly_minheap_p ptr, fly_event_p event, int index)
     int temp = 0;
 
     //find the true place to insert.
-    while(index && (fly_comparetime(&ptr->fly_event[parent]->time, &event->time) == 1)) {
+    //todo: test again, i use 'struct timeval **'' rather 'struct timeval *''
+    while(index && (fly_comparetime(ptr->fly_event[parent]->time, event->time) == 1)) {
         //the event's parent's event's time is larger that the event's. so switch it.
         fly_switch(&ptr->fly_event[parent], &event);
         temp = parent;
@@ -209,7 +210,8 @@ int fly_minheap_top_adjust(fly_minheap_p ptr, int index)
     	return 1;
 
     } else if (left_event != NULL && right_event == NULL) {
-        left_ret = fly_comparetime(&parent_event->time, &left_event->time);
+    	//todo: test again, i use 'struct timeval **'' rather 'struct timeval *''
+        left_ret = fly_comparetime(parent_event->time, left_event->time);
 
         if (left_ret == 3) {
         	return 1;
@@ -224,7 +226,8 @@ int fly_minheap_top_adjust(fly_minheap_p ptr, int index)
         }
 
     } else if (left_event == NULL && right_event != NULL) {
-    	right_ret = fly_comparetime(&parent_event->time, &right_event->time);
+    	//todo: test again, i use 'struct timeval **'' rather 'struct timeval *''
+    	right_ret = fly_comparetime(parent_event->time, right_event->time);
 
         if (right_ret == 3) {
         	return 1;
@@ -241,8 +244,10 @@ int fly_minheap_top_adjust(fly_minheap_p ptr, int index)
         }
 
     } else if (left_event != NULL && right_event != NULL) {
-        left_ret = fly_comparetime(&parent_event->time, &left_event->time);
-        right_ret = fly_comparetime(&parent_event->time, &right_event->time);
+    	//todo: test again, i use 'struct timeval **'' rather 'struct timeval *''
+        left_ret = fly_comparetime(parent_event->time, left_event->time);
+        //todo: test again, i use 'struct timeval **'' rather 'struct timeval *''
+        right_ret = fly_comparetime(parent_event->time, right_event->time);
 
 	    if (left_ret == 3 && right_ret == 3) {
 	    	//the top event's time is less than his left and right child.
@@ -275,7 +280,8 @@ int fly_minheap_top_adjust(fly_minheap_p ptr, int index)
     
 	    if (left_ret == 1 && right_ret == 1) {
 	    	//in this situation, we choose the smaller one between left and right.
-	    	int ret = fly_comparetime(&left_event->time, &right_event->time);
+	    	//todo: test again, i use 'struct timeval **'' rather 'struct timeval *''
+	    	int ret = fly_comparetime(left_event->time, right_event->time);
 
 	    	if (ret == 1) {
 	    		//choose right one wo switch with parent one.
@@ -350,7 +356,7 @@ int fly_minheap_time_adjust(fly_minheap_p ptr)
     printf("test log. fly_minheap's size: %d.\n", ptr->fly_minheap_size);
     
 	for(int i = 0; i < ptr->fly_minheap_size; ++i) {
-		printf("event's ptr: %p, event's time ptr: %p, test log. tv_sec: %d, tv_usec: %d.\n", (ptr->fly_event)[i], (ptr->fly_event)[i]->time, (ptr->fly_event)[i]->time->tv_sec, (ptr->fly_event)[i]->time->tv_usec);
+		printf("event's ptr: %p, event's time ptr: %p, test log. tv_sec: %ld, tv_usec: %ld.\n", (ptr->fly_event)[i], (ptr->fly_event)[i]->time, (ptr->fly_event)[i]->time->tv_sec, (ptr->fly_event)[i]->time->tv_usec);
 	}
 
 	return 1;

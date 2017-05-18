@@ -2,6 +2,7 @@
 A min-heap implemented based on an array.
 
 insert strategy: new node is inserted at the end of the array.
+One timer bind one fly_event.
 
 Author: Andrew lin
 ********************************/

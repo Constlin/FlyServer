@@ -4,6 +4,7 @@ operation about event.
 Author: Andrew lin
 ********************************/
 #include <stdio.h>
+#include <stdlib.h>
 #include <malloc.h>
 #include <string.h>
 #include <sys/epoll.h>
@@ -13,6 +14,7 @@ Author: Andrew lin
 #include "fly_event.h"
 #include "fly_util.h"
 #include "fly_sig.h"
+#include "fly_map.h"
 
 fly_core *fly_core_init()
 {
@@ -70,7 +72,7 @@ fly_core *fly_core_init()
     return core;
 }
 
-int fly_event_set(int fd, void (*callback)(int,void *), fly_event *ev, int flags, void *arg, fly_core *core, struct timeval *tv)
+int fly_event_set(int fd, void (*callback)(void *), fly_event *ev, int flags, void *arg, fly_core *core, struct timeval *tv)
 {
     //If timeout event, the tv should me sec level. It means that the tv_sec shuold > 0.
     if (callback == NULL || ev == NULL  || core == NULL) {
@@ -95,9 +97,9 @@ int fly_event_set(int fd, void (*callback)(int,void *), fly_event *ev, int flags
         ev->user_settime.tv_sec = tv->tv_sec;
         ev->user_settime.tv_usec = tv->tv_usec;
         fly_gettime(&ev->current_time_cache);
-        printf("[DEBUG] user set tv_sec: %d.\n", tv->tv_sec);
+        printf("[DEBUG] user set tv_sec: %ld.\n", tv->tv_sec);
         fly_time_plus(tv, tv, &ev->current_time_cache);
-        printf("[DEBUG] ret_tv_sec: %d, ret_tv_usec: %d, cut_tv_sec: %d.\n", tv->tv_sec, tv->tv_usec, ev->current_time_cache.tv_sec);
+        printf("[DEBUG] ret_tv_sec: %ld, ret_tv_usec: %ld, cut_tv_sec: %ld.\n", tv->tv_sec, tv->tv_usec, ev->current_time_cache.tv_sec);
     } 
 
     ev->time = tv == NULL? NULL : tv;
@@ -350,13 +352,13 @@ int fly_event_remove_from_epoll(fly_event *event)
     return 1;
 }
 
-//todo:incomplete
 int fly_event_dispatch(fly_core *core)
 {
     fly_event *ev;
     struct timeval *tv;
     long timeout;
-    qHead *head = core->fly_io_queue;
+    //todo: test again, i use (qHead *head) before!!!
+    struct fly_queue_head *head = core->fly_io_queue;
 
     if (head == NULL) {
         printf("[ERROR] queue head error.\n");
@@ -366,9 +368,9 @@ int fly_event_dispatch(fly_core *core)
     //get the min-heap's top event's timeout, remember after this
     //operation this event is still in the min-heap.
     timeout = fly_event_get_timeout(core);
-    printf("[DEBUG] the timeout is: %d.\n", timeout);
+    printf("[DEBUG] the timeout is: %ld.\n", timeout);
     int nfds = epoll_wait(core->ep_info->epoll_fd, core->ep_info->events, core->ep_info->nevents, timeout);
-    printf("[DEBUG] epoll_wait over. nfds: %d, timeout: %d.\n", nfds, timeout);
+    printf("[DEBUG] epoll_wait over. nfds: %d, timeout: %ld.\n", nfds, timeout);
 
     if (nfds < 0) {
         if (errno != EINTR) {
@@ -526,14 +528,14 @@ long fly_event_get_timeout(fly_core *core)
     fly_event_p ev = fly_minheap_top(core->fly_timeout_minheap);
     
     if (ev != NULL) {
-        printf("[DEBUG] test log. ev's pointer: %p. tv_sec: %d, tv_usec: %d.\n", ev, ev->time->tv_sec, ev->time->tv_usec);
+        printf("[DEBUG] test log. ev's pointer: %p. tv_sec: %ld, tv_usec: %ld.\n", ev, ev->time->tv_sec, ev->time->tv_usec);
     }
     
     if (fly_minheap_size(core->fly_timeout_minheap) > 0) {      
         tv = *(ev->time);
         fly_time_sub(&tv, &tv, &ev->current_time_cache);
         timeout = fly_transform_tv_to_ms(&tv);
-        printf("[DEBUG] timeout: %d, tv_sec: %d.\n", timeout, tv.tv_sec);
+        printf("[DEBUG] timeout: %ld, tv_sec: %ld.\n", timeout, tv.tv_sec);
     } else {
         //default time that epoll_wait return. 2000 means 2s.
         timeout = 2000;

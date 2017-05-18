@@ -5,6 +5,8 @@ author: Andrew lin
 *****************************/
 #include <stdio.h>
 #include <fcntl.h>
+#include <sys/socket.h>
+#include <unistd.h>
 #include "fly_util.h"
 
 int fly_gettime(struct timeval *tv)
@@ -29,7 +31,7 @@ int fly_gettime(struct timeval *tv)
 void fly_time_plus(struct timeval *tv_ret, struct timeval *tv1, struct timeval *tv2)
 {
     if (tv_ret == NULL || tv1 == NULL || tv2 == NULL) {
-        return -1;
+        return;
     }
 
 	tv_ret->tv_sec = tv1->tv_sec + tv2->tv_sec;

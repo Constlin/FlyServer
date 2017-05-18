@@ -4,6 +4,7 @@ operation about dynamic array
 Author: Andrew lin
 ********************************/
 #include <stdio.h>
+#include <stdlib.h>
 #include "fly_array.h"
 
 fly_array_t *fly_array_init()

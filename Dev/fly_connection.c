@@ -4,6 +4,8 @@ operation about connection pool.
 Author: Andrew lin
 ********************************/
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 #include "fly_core_file.h"
 
 fly_array_t *fly_connection_pool_init()
@@ -119,26 +121,26 @@ int fly_init_connection(fly_connection_t *conn)
     return 1;
 }
 
-int fly_read_connection(fly_connection_t *conn)
+void fly_read_connection(fly_connection_t *conn)
 {
     if (conn == NULL) {
-        return -1;
+        return;
     }
 
     if (conn->read_buf == NULL || conn->read_buf->length <= 0) {
-        return -1;
+        return;
     }
 
-    int n = fly_recv(conn->fd, conn->read_buf, conn->read_buf->length);
+    int n = fly_recv(conn, conn->read_buf, conn->read_buf->length);
 
     if (n == 0) {
     	printf("[WARN] fly_read_connection: client close the connection.\n");
-    	return -1;
+    	return;
     }
 
     if (n == FLY_ERROR) {
     	printf("[ERROR] fly_read_connection: recv error.\n");
-    	return -1;
+    	return;
     }
 
     if (n == FLY_AGAIN) {
@@ -160,12 +162,12 @@ int fly_read_connection(fly_connection_t *conn)
             fly_free_connection(conn->process, conn);
             free(revent);
             printf("[ERROR] fly_read_connection: fly_event_set error.\n");
-            return -1;
+            return;
         }
     }
 
     conn->read_buf->next = conn->read_buf->start + n;
     conn->read_buf->length -= n;
 
-    return n;
+    return;
 }

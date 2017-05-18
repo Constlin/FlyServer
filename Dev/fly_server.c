@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "fly_core_file.h"
 
 int main()
@@ -26,7 +27,7 @@ int fly_init_master(fly_master_t *master)
 	}
 
 	master->worker_number = 4;
-	master->listener = fly_init_queue;
+	master->listener = fly_init_queue();
 
 	return 1;
 }

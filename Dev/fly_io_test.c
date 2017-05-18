@@ -6,6 +6,9 @@ author: Andrew Lin
 #include <stdio.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 #include "fly_event.h"
 
 static int fds[2];
@@ -24,7 +27,7 @@ void fifo_read()
 
     int n = 0, nread = 0;
 
-    if (fds[0] == NULL) {
+    if (fds[0] == 0) {
         printf(" fds[0] is null.\n");
         return;
     }

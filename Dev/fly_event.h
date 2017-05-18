@@ -126,7 +126,7 @@ struct fly_core {
 fly_core *fly_core_init();
 
 //one struct timeval can't use more than one time.
-int fly_event_set(int fd, void (*callback)(int,void *), fly_event *ev, int flags, void *arg, fly_core *core, struct timeval *tv);
+int fly_event_set(int fd, void (*callback)(void *), fly_event *ev, int flags, void *arg, fly_core *core, struct timeval *tv);
 
 //can't add one event twice! it will cause the event's status uncertain!
 int fly_event_add(fly_event *ev);

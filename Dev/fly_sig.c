@@ -6,8 +6,10 @@ author: Andrew lin
 #include <stdio.h>
 #include <signal.h>
 #include <sys/socket.h>
+#include <unistd.h>
 #include "fly_sig.h"
 #include "fly_map.h"
+#include "fly_util.h"
 
 static int evsig_fd = -1;
 static struct fly_hash *hash = NULL;
@@ -74,7 +76,7 @@ int fly_evsig_cb(int fd, void *arg)
 
 //note that if use signal method to set signal handler, this will only take effect ont time,
 //signal called again in the handler method or use sigaction can avoid it.
-int fly_set_sig_handler(int sig, void (*sig_handler)(int i))
+int fly_set_sig_handler(int sig, int (*sig_handler)(int i))
 {
     if (sig < 0) {
         return -1;
@@ -109,19 +111,19 @@ struct fly_queue_head *fly_get_queue_by_signal(struct fly_hash *hash, int signal
 {
     if (signal < 0 || hash == NULL) {
         printf("[ERROR] fly_get_queue_by_signal paras error.\n");
-        return -1;
+        return NULL;
     }
 
     if (hash->fly_sig_array != NULL) {
         if (fly_hash_cap(hash) < signal) {
             printf("[ERROR] fly_get_queue_from_signal fly_hash's cap less than signal.\n");
-            return -1;
+            return NULL;
         }
 
         return (hash->fly_sig_array[signal])->fly_queue;
     }
 
-    return -1;
+    return NULL;
 }
 
 

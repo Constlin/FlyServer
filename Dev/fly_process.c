@@ -6,6 +6,7 @@ Author: Andrew lin
 #include <signal.h>
 #include <stdio.h>
 #include <sys/resource.h>
+#include <stdlib.h>
 #include "fly_socket.h"
 #include "fly_core_file.h"
 

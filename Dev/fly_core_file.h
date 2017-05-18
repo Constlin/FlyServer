@@ -29,5 +29,7 @@ typedef struct fly_array       fly_array_t;
 #include "fly_queue.h"
 #include "fly_buf.h"
 #include "fly_array.h"
+#include "fly_unix.h"
+#include "fly_util.h"
 
 #endif

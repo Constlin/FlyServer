@@ -13,7 +13,7 @@ int fly_sig_init(fly_core *core);
 //add signal event to fly_active_queue
 int fly_evsig_cb(int fd, void *arg);
 
-int fly_set_sig_handler(int sig, void (*sig_handler)(int i));
+int fly_set_sig_handler(int sig, int (*sig_handler)(int i));
 
 //signal handler method, write signal data to socketpair[1]
 int fly_sig_handler(int i);
