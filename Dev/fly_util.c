@@ -193,8 +193,15 @@ int fly_close_fd(int fd)
 int fly_int_to_char(int n, char *c)
 {
     //caller should make sure that the c is enouth to store the n.
-    if (n < 0 || c == NULL || n ) {
-        printf("[ERROR] fly_int_to_char() do not support < 0.\n");
+    if (n < 0 || c == NULL) {
+        if (n < 0) {
+            printf("[ERROR] fly_int_to_char(): do not support < 0.\n");
+        } 
+
+        if (c == NULL) {
+            printf("[ERROR] fly_int_to_char(): c is NULL.\n");
+        }
+        
         return -1;
     }
 

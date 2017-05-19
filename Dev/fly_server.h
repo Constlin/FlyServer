@@ -12,16 +12,16 @@ Author: Andrew lin
 
 struct fly_master {
 	//the array of the listenging socket, the worker procss will only care the socket in listener
-    fly_queue_t  *listener;
+    fly_queue_t   *listener;
 
     //the number of worker process
-    int           worker_number;
+    int            worker_number;
 
     //store the process's info
-    fly_process_t process_info[MAX_PROCESS_NUMBER];
+    fly_process_t *process_info[MAX_PROCESS_NUMBER];
 
     //used of array process_info
-    int           used;
+    int            used;
 };
 
 typedef struct fly_master fly_master_t;

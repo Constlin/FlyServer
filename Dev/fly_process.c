@@ -17,6 +17,11 @@ int fly_multiprocess_mode(fly_master_t *master)
 		return -1;
 	}
 
+    if (fly_start_worker_process(master) == -1) {
+        printf("[ERROR] fly_master_process_init: start worker process error.\n");
+        return -1;
+    }
+
 	if (fly_master_process_cycle() == -1) {
 		printf("[ERROR] fly_multiprocess_mode: master process cycle error.\n");
 		return -1;
@@ -43,12 +48,6 @@ int fly_master_process_init(fly_master_t *master)
     	printf("[ERROR] fly_master_process_init: bind listen socket error.\n");
     	return -1;
     }
-
-    if (fly_start_worker_process(master) == -1) {
-    	printf("[ERROR] fly_master_process_init: start worker process error.\n");
-    	return -1;
-    }
-
 }
 
 
@@ -65,7 +64,8 @@ int fly_start_worker_process(fly_master_t *master)
 		return -1;
 	}
 
-    for (int i = 0; i < master->worker_number; ++i) {
+    //todo: temporarilily set one time fork
+    for (int i = 0; i < 1; ++i) {
     	fly_create_process(master, i);
     	++master->used;
     }
@@ -93,13 +93,17 @@ int fly_create_process(fly_master_t *master, int index)
 
 int fly_worker_process_init(fly_master_t *master, int index)
 {
-    struct rlimit rlmt;
+    if (master == NULL || index < 0) {
+        printf("[ERROR] fly_worker_process_init: paras error.\n");
+        return -1;
+    }
     
     if (master->listener == NULL) {
     	printf("[ERROR] fly_worker_process_init: master's queue listener NULL.\n");
     	return -1;
     }
 
+    struct rlimit rlmt;
     //todo: temporarily we only listen one socket, so just get the queue's top ele.
     fly_listening_t *ls = fly_queue_get_top(master->listener);
     pid_t pid = getpid();
@@ -110,8 +114,10 @@ int fly_worker_process_init(fly_master_t *master, int index)
     	return -1;
     }
     
-    //we use index to mark where the worker process stored
-    master->process_info[index] = *process;
+    //we use index to mark where the worker process stored.
+    //don't use value copy for process like this "master->process_info[index] = *process",
+    //if we do this, it will cause master->process_info[index] saves error one rather process whic init correctly.
+    master->process_info[index] = process;
     process->fd = ls->fd;
     process->listener = ls;
     process->pid = pid;
@@ -176,11 +182,10 @@ int fly_worker_process_cycle(fly_master_t *master, int index)
     	return -1;
     }
     
-    fly_process_t process = master->process_info[index];
-
-    for( ; ;) {
-        fly_core_cycle(process.event_core);
-    }
+    fly_process_t *process = master->process_info[index];
+    //for( ; ;) {
+        fly_core_cycle(process->event_core);
+    //}
 }
 
 int fly_destroy_connection_pool(fly_process_t *process)

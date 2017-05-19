@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "fly_core_file.h"
-/*
+
 int main()
 {
 	fly_master_t *master = malloc(sizeof(fly_master_t));
@@ -19,7 +19,7 @@ int main()
 
 	fly_multiprocess_mode(master);
 }
-*/
+
 int fly_init_master(fly_master_t *master)
 {
 	if (master == NULL) {

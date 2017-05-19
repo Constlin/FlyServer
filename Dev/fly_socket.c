@@ -7,6 +7,7 @@ Author: Andrew lin
 #include <sys/socket.h>
 #include <stdlib.h>
 #include <string.h>
+#include <netdb.h>
 #include "fly_util.h"
 #include "fly_socket.h"
 #include "fly_connection.h"
@@ -36,7 +37,7 @@ int fly_bind_socket(fly_listening_t *listener)
 	int fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
 	if (fd == -1) {
-		printf("[ERROR] create socket error.\n");
+		printf("[ERROR] fly_bind_socket: create socket error.\n");
 		return -1;
 	}
 
@@ -61,9 +62,9 @@ int fly_bind_socket(fly_listening_t *listener)
 		return -1;
     }
 
-    if (bind(fd, ai->ai_addr, (socklen_t)ai->ai_addrlen) == -1) {
-    	printf("[ERROR] bin socket error.\n");
-    	fly_close_fd(fd);
+    if (bind(fd, ai->ai_addr, (socklen_t)ai->ai_addrlen) == -1) {   	
+    	perror("[error] fly_bind_socket: bind error");
+        fly_close_fd(fd);
 		return -1;
     }
 
@@ -172,7 +173,7 @@ int fly_bind_socket_and_listen(fly_master_t *master)
     	return -1;
     }
 
-    printf("[DEBUG] fly_bind_socket_and_listen successfully, addr: %s, port: %d", listener->addr, listener->port);
+    printf("[DEBUG] fly_bind_socket_and_listen successfully, addr: %s, port: %d\n", listener->addr, listener->port);
 
     return 1;
 }
@@ -200,7 +201,7 @@ struct addrinfo *fly_make_addr(fly_listening_t *listener)
     hints.ai_flags = AI_PASSIVE;
 
     fly_int_to_char(listener->port, strport);
-
+    printf("[GUESS] addr: %s, port: %s.\n", listener->addr, strport);
     if (getaddrinfo(listener->addr, strport, &hints, &ai) != 0) {
     	return NULL;
     }
