@@ -67,21 +67,25 @@ int fly_bind_socket(fly_listening_t *listener)
         fly_close_fd(fd);
 		return -1;
     }
-
+    
     listener->sockaddr = ai->ai_addr;
     listener->addrlen  = (socklen_t)ai->ai_addrlen;
-
     return 1;
 }
 
 //todo: complete the logic about processing tcp connection coming and next opearation about read and write
 //called when the listen socket has data
-int fly_accept_socket(fly_process_t *process)
+int fly_accept_socket(int fd, fly_process_t *process)
 {
-    int fd;
+    if (fd != process->fd) {
+        printf("[ERROR] fly_accept_socket: fd != process->fd.\n");
+        return -1;
+    }
 
-    if ((fd = accept(process->fd, process->listener->sockaddr, process->listener->addrlen)) == -1) {
-        printf("[ERROR] accept error.\n");
+    int accept_fd;
+
+    if ((accept_fd = accept(process->fd, NULL, NULL)) == -1) {
+        perror("[ERROR] fly_accept_socket: accept error.");
         return -1;
     }
 
@@ -92,7 +96,7 @@ int fly_accept_socket(fly_process_t *process)
         return -1;
     }
 
-    fly_bind_conn_with_socket(conn, fd);
+    fly_bind_conn_with_socket(conn, accept_fd);
     fly_bind_conn_with_listener(conn, process->listener);
     
     fly_event_t *revent = malloc(sizeof(fly_event_t));
@@ -103,7 +107,7 @@ int fly_accept_socket(fly_process_t *process)
         return -1;
     }
 
-    if (fly_event_set(fd, fly_read_connection, revent, FLY_EVENT_READ, NULL, process->event_core, NULL) == -1) {
+    if (fly_event_set(accept_fd, fly_read_connection, revent, FLY_EVENT_READ, NULL, process->event_core, NULL) == -1) {
         fly_free_connection(process, conn);
         free(revent);
         printf("[ERROR] fly_accept_socket: fly_event_set error.\n");

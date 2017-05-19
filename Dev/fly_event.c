@@ -368,9 +368,9 @@ int fly_event_dispatch(fly_core *core)
     //get the min-heap's top event's timeout, remember after this
     //operation this event is still in the min-heap.
     timeout = fly_event_get_timeout(core);
-    printf("[DEBUG] the timeout is: %ld.\n", timeout);
+    //printf("[DEBUG] the timeout is: %ld.\n", timeout);
     int nfds = epoll_wait(core->ep_info->epoll_fd, core->ep_info->events, core->ep_info->nevents, timeout);
-    printf("[DEBUG] epoll_wait over. nfds: %d, timeout: %ld.\n", nfds, timeout);
+    //printf("[DEBUG] epoll_wait over. nfds: %d, timeout: %ld.\n", nfds, timeout);
 
     if (nfds < 0) {
         if (errno != EINTR) {
