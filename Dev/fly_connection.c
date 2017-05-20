@@ -68,7 +68,8 @@ fly_connection_t *fly_get_connection(fly_process_t *proc)
         next = proc->conn_count + 1;
     } else {
         if (proc->free_conn->next_free != NULL) {
-
+            //note: only free connection from conn_pool, the reused connection's next_free is not null.
+            //in this situation, we need not to increase the 'next'.
         } else {
             ++next;
         }
@@ -86,6 +87,8 @@ fly_connection_t *fly_get_connection(fly_process_t *proc)
     }
 
     if (conn->next_free != NULL) {
+        //note: only free connection from conn_pool, the reused connection's next_free is not null.
+        //in this situation, the conn_pool next free connection should be the conn->next_free.
         proc->free_conn = conn->next_free;
     } else {
         proc->free_conn = proc->conn_pool->head[next];  
