@@ -76,8 +76,9 @@ struct fly_connection {
 
 typedef struct fly_connection fly_connection_t;
 
-fly_array_t *fly_connection_pool_init();
+int fly_connection_pool_init(fly_process_t *proc);
 
+//before get connection from pool, we must to check weather we need to expand the pool.
 fly_connection_t *fly_get_connection(fly_process_t *proc);
 
 //free a connection, notice we just make it reused insted of freeing it, so while get conn we need to memset(buf, 0, bufsize)
@@ -87,5 +88,11 @@ int fly_init_connection(fly_connection_t *conn);
 
 //read as many as we can from this connection
 void fly_read_connection(fly_connection_t *conn);
+
+//get the count of all connections(used and free).
+int fly_connection_count(fly_process_t *proc);
+
+//if there has free connection in the pool, we don't expand; otherwise, we expand the pool double that before
+int fly_expand_connection_pool(fly_process_t *proc)
 
 #endif

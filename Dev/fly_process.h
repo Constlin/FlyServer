@@ -27,6 +27,9 @@ struct fly_process {
     //an array which ele is the fly_connection_t
     fly_array_t       *conn_pool;
 
+    //the count of the connections that the conn_pool master
+    int                conn_count;
+
     //the conn's fd which this work process care
     //todo: now one process only care one connection, in future, need to support multi
     int                fd;

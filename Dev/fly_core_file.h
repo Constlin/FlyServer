@@ -7,6 +7,10 @@ file that contain the core datastruct.
 #ifndef _FLY_CORE_FILE_H
 #define _FLY_CORE_FILE_H
 
+#define FLY_ZERO 0
+//the initialized size of the connection pool
+#define FLY_CONNECTION_COUNT_INIT 100
+
 typedef struct fly_connection  fly_connection_t;
 typedef struct fly_listening   fly_listening_t;
 typedef struct fly_process     fly_process_t;

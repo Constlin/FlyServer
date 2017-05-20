@@ -8,9 +8,29 @@ Author: Andrew lin
 #include <stdlib.h>
 #include "fly_core_file.h"
 
-fly_array_t *fly_connection_pool_init()
+int fly_connection_pool_init(fly_process_t *proc)
 {
-    return fly_array_init();
+    if (proc == NULL) {
+        return -1;
+    }
+
+    proc->conn_pool = fly_array_init();
+
+    if (proc->conn_pool == NULL) {
+        return -1;
+    }
+
+    proc->free_conn = NULL;
+    proc->conn_number = 0;
+    proc->used_conn_number = 0;
+    proc->conn_count = 0;
+
+    //first expand.
+    if (fly_expand_connection_pool(proc) == -1) {
+        return -1;
+    }
+
+    return 1;
 }
 
 fly_connection_t *fly_get_connection(fly_process_t *proc)
@@ -170,4 +190,48 @@ void fly_read_connection(fly_connection_t *conn)
     conn->read_buf->length -= n;
 
     return;
+}
+
+int fly_connection_count(fly_process_t *proc)
+{
+    if (proc == NULL) {
+        return -1;
+    }
+
+    return proc->conn_count;
+}
+
+int fly_expand_connection_pool(fly_process_t *proc)
+{
+    if (proc == NULL) {
+        return -1;
+    }
+
+    if (proc->conn_number > 0) {
+        //free connection > 0, so no need to expand.
+        return 0;
+    }
+
+    if (proc->conn_count == 0) {
+        //first expand connection pool, we make the connection pool's connection count is 100.
+        if (fly_array_reserve(proc->conn_pool, FLY_CONNECTION_COUNT_INIT) == -1) {
+            return -1;
+        } else {
+            proc->free_conn = proc->conn_pool->head;
+            proc->conn_number = proc->conn_pool->
+            return 1;
+        }
+    }
+
+    if (proc->conn_count != 0 && proc->conn_number == 0) {
+        //the connection pool has no free connection, need to expand to be double.
+        if (fly_array_reserve(proc->conn_pool, proc->conn_count + 1) == -1) {
+            return -1;
+        } else {
+            return 1;
+        }
+    }
+
+    //unknown error.
+    return -1;
 }
