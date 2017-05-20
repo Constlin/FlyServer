@@ -3,7 +3,6 @@
 file that contain the core datastruct.
 
 *****************************/
-
 #ifndef _FLY_CORE_FILE_H
 #define _FLY_CORE_FILE_H
 

@@ -55,10 +55,10 @@ struct fly_connection {
     struct fly_event *write;
 
     //the buffer used for read this connection's internet data.
-    fly_buf_t *read_buf;
+    fly_buf_t        *read_buf;
 
     //the buffer used for write data to this connection's internet.
-    fly_buf_t *write_buf;
+    fly_buf_t        *write_buf;
 
     //if the connection is used, set to 1, else 0
     int               used;
@@ -88,11 +88,5 @@ int fly_init_connection(fly_connection_t *conn);
 
 //read as many as we can from this connection
 void fly_read_connection(fly_connection_t *conn);
-
-//get the count of all connections(used and free).
-int fly_connection_count(fly_process_t *proc);
-
-//if there has free connection in the pool, we don't expand; otherwise, we expand the pool double that before
-int fly_expand_connection_pool(fly_process_t *proc)
 
 #endif

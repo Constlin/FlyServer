@@ -19,7 +19,7 @@ struct fly_process {
     fly_connection_t  *free_conn;
 
     //the number of the free connection
-    int                conn_number;
+    int                left_conn_number;
 
     //the number of the used connection
     int                used_conn_number;
