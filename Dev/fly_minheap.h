@@ -70,7 +70,8 @@ int fly_minheap_set_top_null(fly_minheap_p ptr);
 //make fly_minheap's time decreace top's time to make sure that epoll_wait get true timeout.
 int fly_minheap_time_adjust(fly_minheap_p ptr);
 
-//free fly_minheap
+//free fly_minheap, note that we just free the fly_minheap, for the ele in the fly_minheap, the caller need
+//to process it himself.
 int fly_minheap_free(fly_minheap_p ptr);
 
 #endif

@@ -211,7 +211,6 @@ void fly_read_connection(fly_connection_t *conn)
 
     if (n == FLY_AGAIN) {
     	//add this read event to fly_core again
-    	//todo: find this revent in process's revent_queue
     	fly_event_t *revent = fly_use_fd_find_event(conn->fd, conn->process->revent_queue);
 
     	if (revent == NULL) {

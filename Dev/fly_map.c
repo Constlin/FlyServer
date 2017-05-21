@@ -56,7 +56,7 @@ int fly_hash_reserve(fly_hash_p hash, int size)
 
     	if(!(temp_sig_array = (struct fly_sig **)realloc(hash->fly_sig_array, temp_cap * sizeof(*temp_sig_array)))) {
 			printf("[ERROR] realloc error.\n");
-			//todo: should free the fly_minheap
+            fly_hash_free(hash);
 			return -1;
 		}
         //set the new realloc's ele NULL.

@@ -51,7 +51,7 @@ int fly_minheap_reserve(fly_minheap_p ptr, int need_size)
 		
 		if(!(temp_event = (fly_event_p *)realloc(ptr->fly_event, temp_cap * sizeof(*temp_event)))) {
 			printf("[ERROR] realloc error.\n");
-			//todo: should free the fly_minheap
+			fly_minheap_free(ptr);
 			return -1;
 		}
 
