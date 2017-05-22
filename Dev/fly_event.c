@@ -511,9 +511,17 @@ int fly_process_active(fly_core *core)
 
         } else if ((fly_delete_queue(core->fly_active_queue, ev) != 1) /*|| fly_delete_queue(core->fly_io_queue, ev) != 1*/) { 
             //todo: need to delete unpersist event from fly_io_queue.          
-            printf("[ERROR] remove ele from active queue/io queue error.\n");
+            printf("[ERROR] remove ele from active queue queue error.\n");
             return -1;
         } else {
+            if (ev->flags & FlY_EVENT_UNPERSIST) {
+                //unpersist event, need to delete it from fly_io_queue.
+                if (fly_delete_queue(core->fly_io_queue, ev) != 1) {
+                    printf("[ERROR] remove ele from active io queue error.\n");
+                    return -1;
+                }
+            }
+            
             ev->status = FLY_LIST_ACTIVE; //if not set this, after delete event at queue,next cycle can't add this event to true queue.
             printf("[DEBUG] remove unpersist event successfully.\n");
         }

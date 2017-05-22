@@ -205,7 +205,7 @@ int fly_init_connection(fly_connection_t *conn)
     return 1;
 }
 
-void fly_read_connection(fly_connection_t *conn)
+void fly_read_connection(int fd, fly_connection_t *conn)
 {
     if (conn == NULL) {
         return;
@@ -252,6 +252,6 @@ void fly_read_connection(fly_connection_t *conn)
 
     conn->read_buf->next = conn->read_buf->start + n;
     conn->read_buf->length -= n;
-
+    printf("[DEBUG] fly_read_connection: conn->read_buf: %s.\n", conn->read_buf);
     return;
 }

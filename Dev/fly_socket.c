@@ -107,7 +107,7 @@ int fly_accept_socket(int fd, fly_process_t *process)
         return -1;
     }
 
-    if (fly_event_set(accept_fd, fly_read_connection, revent, FLY_EVENT_READ, NULL, process->event_core, NULL) == -1) {
+    if (fly_event_set(accept_fd, fly_read_connection, revent, FLY_EVENT_READ, conn, process->event_core, NULL) == -1) {
         fly_free_connection(process, conn);
         free(revent);
         printf("[ERROR] fly_accept_socket: fly_event_set error.\n");

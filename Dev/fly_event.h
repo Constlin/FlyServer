@@ -55,6 +55,8 @@ struct fly_event {
 	    FLY_EVENT_WRITE mean I/O write event,
       FLY_EVENT_SIG mean signal event,
       FLY_EVENT_INTERNAL mean this is internal event.
+      FlY_EVENT_UNPERSIST mean the event is unperesist, after called once it will both deleted from fly_io_queue and fly_active_queue
+                          while the persist event will just deleted from fly_active_queue.
     */
     int flags;
     /*
