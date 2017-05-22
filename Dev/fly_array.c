@@ -67,7 +67,7 @@ int fly_array_insert(fly_array_t *dynamic_array, void *ele)
         }
     }
 
-    printf("[DEBUG] index: %d, length: %d, cap: %d, value: %d.\n", dynamic_array->length - dynamic_array->cap, dynamic_array->length, dynamic_array->cap, *ele);
+    //printf("[DEBUG] index: %d, length: %d, cap: %d, value: %d.\n", dynamic_array->length - dynamic_array->cap, dynamic_array->length, dynamic_array->cap, *ele);
     dynamic_array->head[dynamic_array->length - dynamic_array->cap] = ele;
     //after insert one ele successfully, we decrease the array's cap by 1.
     dynamic_array->cap -= 1;

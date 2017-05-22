@@ -38,6 +38,7 @@ fly_connection_t *fly_get_connection(fly_process_t *proc)
     	return NULL;
     }
 
+    printf("[GUESS] fly_get_connection: proc->conn_count: %d.\n", proc->conn_count);
     //before get connection from conn_pool, we need to check weather there is free_conn exist,
     //if not we need to expand the conn_pool.
     if (proc->conn_count == 0) {
@@ -46,6 +47,23 @@ fly_connection_t *fly_get_connection(fly_process_t *proc)
             fly_free_array(proc->conn_pool);
             printf("[DEBUG] fly_get_connection: (initialize) expand the array error.\n");
             return NULL;
+        }
+
+        //malloc memory for conn_pool->head's ele.
+        for (int i = 0; i < FLY_CONNECTION_COUNT_INIT; ++i) {
+        	proc->conn_pool->head[i] = malloc(sizeof(fly_connection_t));
+        	if (proc->conn_pool->head[i] == NULL) {
+        		//malloc error, before retun NULL we need to free the memory malloc before.
+        		if (i > 0) {
+        			for (int j = 0; j < i; ++j) {
+        				free(proc->conn_pool->head[j]);
+        			}
+
+        			free(proc->conn_pool);
+        			printf("[DEBUG] fly_get_connection: malloc error.\n");
+        			return NULL;
+        		}
+        	}
         }
 
         proc->free_conn = proc->conn_pool->head[0];
@@ -83,7 +101,7 @@ fly_connection_t *fly_get_connection(fly_process_t *proc)
 
     if (conn == NULL) {
         printf("[ERROR] fly_get_connection: conn is NULL.\n");
-        retyrn NULL;
+        return NULL;
     }
 
     if (conn->next_free != NULL) {
@@ -187,7 +205,7 @@ int fly_init_connection(fly_connection_t *conn)
     return 1;
 }
 
-void fly_read_connection(fly_connection_t *conn)
+void fly_read_connection(int fd, fly_connection_t *conn)
 {
     if (conn == NULL) {
         return;
@@ -233,6 +251,6 @@ void fly_read_connection(fly_connection_t *conn)
 
     conn->read_buf->next = conn->read_buf->start + n;
     conn->read_buf->length -= n;
-
+    printf("[DEBUG] fly_read_connection: conn->read_buf: %s.\n", conn->read_buf);
     return;
 }

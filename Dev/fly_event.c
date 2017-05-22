@@ -368,9 +368,9 @@ int fly_event_dispatch(fly_core *core)
     //get the min-heap's top event's timeout, remember after this
     //operation this event is still in the min-heap.
     timeout = fly_event_get_timeout(core);
-    printf("[DEBUG] the timeout is: %ld.\n", timeout);
+    //printf("[DEBUG] the timeout is: %ld.\n", timeout);
     int nfds = epoll_wait(core->ep_info->epoll_fd, core->ep_info->events, core->ep_info->nevents, timeout);
-    printf("[DEBUG] epoll_wait over. nfds: %d, timeout: %ld.\n", nfds, timeout);
+    //printf("[DEBUG] epoll_wait over. nfds: %d, timeout: %ld.\n", nfds, timeout);
 
     if (nfds < 0) {
         if (errno != EINTR) {
@@ -509,10 +509,19 @@ int fly_process_active(fly_core *core)
                 return -1;
             }
 
-        } else if ((fly_delete_queue(core->fly_active_queue, ev) != 1) /*|| fly_delete_queue(core->fly_io_queue, ev) != 1*/) {           
-            printf("[ERROR] remove ele from active queue/io queue error.\n");
+        } else if ((fly_delete_queue(core->fly_active_queue, ev) != 1) /*|| fly_delete_queue(core->fly_io_queue, ev) != 1*/) { 
+            //todo: need to delete unpersist event from fly_io_queue.          
+            printf("[ERROR] remove ele from active queue queue error.\n");
             return -1;
         } else {
+            if (ev->flags & FlY_EVENT_UNPERSIST) {
+                //unpersist event, need to delete it from fly_io_queue.
+                if (fly_delete_queue(core->fly_io_queue, ev) != 1) {
+                    printf("[ERROR] remove ele from active io queue error.\n");
+                    return -1;
+                }
+            }
+            
             ev->status = FLY_LIST_ACTIVE; //if not set this, after delete event at queue,next cycle can't add this event to true queue.
             printf("[DEBUG] remove unpersist event successfully.\n");
         }
