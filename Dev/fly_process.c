@@ -122,7 +122,8 @@ int fly_worker_process_init(fly_master_t *master, int index)
     process->listener = ls;
     process->pid = pid;
     process->event_core = fly_core_init();
-    process->conn_pool = fly_connection_pool_init();
+    //process->conn_pool = fly_connection_pool_init(process);
+    process->conn_count = FLY_ZERO;
     process->revent_queue = fly_init_queue();
     process->wevent_queue = fly_init_queue();
 
@@ -132,7 +133,7 @@ int fly_worker_process_init(fly_master_t *master, int index)
     	return -1;
     } 
 
-    if (process->conn_pool == NULL) {
+    if (fly_connection_pool_init(process) == -1) {
     	printf("[ERROR] fly_worker_process_init: fly_connection_pool_init error.\n");
     	fly_core_clear(process->event_core);
     	free(process);

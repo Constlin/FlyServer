@@ -126,6 +126,7 @@ int fly_accept_socket(int fd, fly_process_t *process)
         return -1;
     }
 
+    printf("[GUESS] fly_accept_socket: accept a connection successfully.\n");
     return 1;
 
     //add the read event for this connection to fly_core

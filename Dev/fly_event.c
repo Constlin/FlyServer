@@ -509,7 +509,8 @@ int fly_process_active(fly_core *core)
                 return -1;
             }
 
-        } else if ((fly_delete_queue(core->fly_active_queue, ev) != 1) /*|| fly_delete_queue(core->fly_io_queue, ev) != 1*/) {           
+        } else if ((fly_delete_queue(core->fly_active_queue, ev) != 1) /*|| fly_delete_queue(core->fly_io_queue, ev) != 1*/) { 
+            //todo: need to delete unpersist event from fly_io_queue.          
             printf("[ERROR] remove ele from active queue/io queue error.\n");
             return -1;
         } else {

@@ -19,13 +19,16 @@ struct fly_process {
     fly_connection_t  *free_conn;
 
     //the number of the free connection
-    int                conn_number;
+    int                left_conn_number;
 
     //the number of the used connection
     int                used_conn_number;
 
     //an array which ele is the fly_connection_t
     fly_array_t       *conn_pool;
+
+    //the count of the connections that the conn_pool master
+    int                conn_count;
 
     //the conn's fd which this work process care
     //todo: now one process only care one connection, in future, need to support multi

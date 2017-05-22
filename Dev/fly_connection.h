@@ -55,10 +55,10 @@ struct fly_connection {
     struct fly_event *write;
 
     //the buffer used for read this connection's internet data.
-    fly_buf_t *read_buf;
+    fly_buf_t        *read_buf;
 
     //the buffer used for write data to this connection's internet.
-    fly_buf_t *write_buf;
+    fly_buf_t        *write_buf;
 
     //if the connection is used, set to 1, else 0
     int               used;
@@ -76,8 +76,9 @@ struct fly_connection {
 
 typedef struct fly_connection fly_connection_t;
 
-fly_array_t *fly_connection_pool_init();
+int fly_connection_pool_init(fly_process_t *proc);
 
+//before get connection from pool, we must to check weather we need to expand the pool.
 fly_connection_t *fly_get_connection(fly_process_t *proc);
 
 //free a connection, notice we just make it reused insted of freeing it, so while get conn we need to memset(buf, 0, bufsize)
