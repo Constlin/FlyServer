@@ -38,7 +38,6 @@ fly_connection_t *fly_get_connection(fly_process_t *proc)
     	return NULL;
     }
 
-    printf("[GUESS] fly_get_connection: proc->conn_count: %d.\n", proc->conn_count);
     //before get connection from conn_pool, we need to check weather there is free_conn exist,
     //if not we need to expand the conn_pool.
     if (proc->conn_count == 0) {
@@ -234,10 +233,10 @@ void fly_read_connection(int fd, fly_connection_t *conn)
 
     	if (revent == NULL) {
             printf("[ERROR] fly_read_connection: fly_use_fd_find_event return NULL.\n");
-            /*
-              if revent == NULL, there may somewhere remove this revent fromo fly_core
-              incorrectly, 
-            */
+            //
+            // if revent == NULL, there may somewhere remove this revent fromo fly_core
+            // incorrectly, 
+            //
             fly_free_connection(conn->process, conn);
             return -1;
     	}
@@ -251,7 +250,8 @@ void fly_read_connection(int fd, fly_connection_t *conn)
     }
 
     conn->read_buf->next = conn->read_buf->start + n;
-    conn->read_buf->length -= n;
-    printf("[DEBUG] fly_read_connection: conn->read_buf: %s.\n", conn->read_buf);
+    conn->read_buf->length = conn->read_buf->length - n;
+    printf("[info] fly_read_connection: conn->read_buf: %s.\n", conn->read_buf->start);
     return;
+ 
 }

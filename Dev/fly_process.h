@@ -64,4 +64,9 @@ int fly_worker_process_cycle(fly_master_t *master, int index);
 
 int fly_destroy_connection_pool(fly_process_t *process);
 
+int fly_init_process_title();
+
+//the system store the process's title in the argv[0], so we need to change the argv[0],
+int fly_set_process_title(char *title);
+
 #endif

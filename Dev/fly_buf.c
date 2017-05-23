@@ -19,7 +19,7 @@ fly_buf_t *fly_init_buf(int bytes)
     	return NULL;
     }
 
-    buf->start = malloc(sizeof(bytes));
+    buf->start = malloc(bytes*sizeof(char));
 
     if (buf->start == NULL) {
     	free(buf);

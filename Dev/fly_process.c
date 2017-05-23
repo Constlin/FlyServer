@@ -55,6 +55,11 @@ int fly_master_process_init(fly_master_t *master)
 int fly_master_process_cycle()
 {
     //todo: handle or send the signal to manage the worker process.
+    for(;;) {
+
+    }
+
+    return -1;
 }
 
 int fly_start_worker_process(fly_master_t *master)
@@ -64,6 +69,7 @@ int fly_start_worker_process(fly_master_t *master)
 		return -1;
 	}
 
+    printf("[DEBUG] master: %d fly_start_worker_process.\n", (int)getpid());
     //todo: temporarilily set one time fork
     for (int i = 0; i < 1; ++i) {
     	fly_create_process(master, i);
@@ -107,6 +113,7 @@ int fly_worker_process_init(fly_master_t *master, int index)
     //todo: temporarily we only listen one socket, so just get the queue's top ele.
     fly_listening_t *ls = fly_queue_get_top(master->listener);
     pid_t pid = getpid();
+    printf("[DEBUG] fly_worker_process_init: pid: %d.\n", (int)pid);
     fly_process_t *process = malloc(sizeof(fly_process_t));
 
     if (process == NULL) {
@@ -185,8 +192,10 @@ int fly_worker_process_cycle(fly_master_t *master, int index)
     
     fly_process_t *process = master->process_info[index];
     //for( ; ;) {
-        fly_core_cycle(process->event_core);
+    //printf("[DEBUG] fly_worker_process_cycle: start fly_core_cycle.\n");
+    fly_core_cycle(process->event_core);
     //}
+    //printf("[DEBUG] fly_worker_process_cycle: end fly_core_cycle.\n");
 }
 
 int fly_destroy_connection_pool(fly_process_t *process)
@@ -201,4 +210,14 @@ int fly_destroy_connection_pool(fly_process_t *process)
     }
 
     return -1;
+}
+
+int fly_init_process_title()
+{
+
+}
+
+int fly_set_process_title(char *title)
+{
+
 }
