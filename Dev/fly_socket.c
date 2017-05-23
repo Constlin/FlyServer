@@ -126,7 +126,12 @@ int fly_accept_socket(int fd, fly_process_t *process)
         return -1;
     }
 
-    printf("[GUESS] fly_accept_socket: accept a connection successfully.\n");
+    //test code
+    if (revent->time == NULL) {
+        printf("[TEST] fly_accept_socket: revent->time is NULL and his addr is: %d.\n", &revent->time);
+    }
+
+    printf("[INFO] fly_accept_socket: accept a connection successfully.\n");
     return 1;
 
     //add the read event for this connection to fly_core
@@ -206,7 +211,7 @@ struct addrinfo *fly_make_addr(fly_listening_t *listener)
     hints.ai_flags = AI_PASSIVE;
 
     fly_int_to_char(listener->port, strport);
-    printf("[GUESS] addr: %s, port: %s.\n", listener->addr, strport);
+
     if (getaddrinfo(listener->addr, strport, &hints, &ai) != 0) {
     	return NULL;
     }

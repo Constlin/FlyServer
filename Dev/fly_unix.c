@@ -13,9 +13,9 @@ int fly_recv(fly_connection_t *conn, fly_buf_t *buf, int length)
 
     int err;
     int n;
-
+    
 	do {
-        n = recv(conn->fd, buf, length, 0);
+        n = recv(conn->fd, buf->start, length, 0);
 
         if (n == 0) {
         	return n;
@@ -50,7 +50,7 @@ int fly_send(fly_connection_t *conn, fly_buf_t *buf, int length)
 	int n;
 
 	for ( ;; ) {
-        n = send(conn->fd, buf, length, 0);
+        n = send(conn->fd, buf->start, length, 0);
 
         if (n == 0) {
         	return n;

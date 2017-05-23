@@ -289,24 +289,25 @@ int fly_event_add_to_epoll(fly_core *core)
 
 	//add all events to epoll from reg queue
 	for (int i = 0; i < fly_queue_length(core->fly_reg_queue); i++) {
-        printf("[DEBUG] the queue length is: %d.\n", fly_queue_length(core->fly_reg_queue));
 		event = fly_pop_queue(core->fly_reg_queue);
-
+        
     	if (event == NULL) {
     		printf("[ERROR] event popped from queue is NULL.\n");
     		//if get event is NULL,we just ignore it and go continue.
     		continue;
     	}
-        
+                
         if (event->flags & (FLY_EVENT_READ | FLY_EVENT_WRITE)) {
         	if (event->flags & FLY_EVENT_READ) {
         		op = EPOLL_CTL_ADD;
         	    epev.data.fd = event->fd;
-        	    epev.events = EPOLLIN | EPOLLET; //just care about this event's read event
+        	    epev.events = EPOLLIN | EPOLLET | EPOLLONESHOT; //just care about this event's read event,
+                                                                //set the event is EPOLLONESHOT, this means if one want 
+                                                                //epoll mode care one event one more timies, we need to use epoll_ctl add this event manually.
         	} else if (event->flags & FLY_EVENT_WRITE) {
         		op = EPOLL_CTL_ADD;
         		epev.data.fd = event->fd;
-        		epev.events = EPOLLOUT | EPOLLET; //just care about this event's write event
+        		epev.events = EPOLLOUT | EPOLLET | EPOLLONESHOT; //just care about this event's write event
         	}
             /* 
                 LT: events will notify us when there has data to read or write.
@@ -354,7 +355,7 @@ int fly_event_remove_from_epoll(fly_event *event)
 
 int fly_event_dispatch(fly_core *core)
 {
-    fly_event *ev;
+    fly_event *ev = NULL;
     struct timeval *tv;
     long timeout;
     //todo: test again, i use (qHead *head) before!!!
@@ -402,7 +403,7 @@ int fly_event_dispatch(fly_core *core)
                 printf("[ERROR] fly_use_fd_find_event return NULL.\n");
                 return -1;
         }
-
+        
         if (what & EPOLLIN) {
             /*
               I/O became readable,
@@ -426,7 +427,7 @@ int fly_event_dispatch(fly_core *core)
             continue;
         }
     }
-
+   
     return 0;
 }
 
@@ -471,6 +472,10 @@ int fly_process_active(fly_core *core)
         return -1;
     }
     
+    if (core->fly_active_queue == NULL) {
+        printf("[ERROR] fly_process_active: active queue is NULL.\n");
+    }
+
     qPtr qp = NULL;
 
     for (qp = core->fly_active_queue->first; qp != NULL; qp = qp->next) {
@@ -509,10 +514,6 @@ int fly_process_active(fly_core *core)
                 return -1;
             }
 
-        } else if ((fly_delete_queue(core->fly_active_queue, ev) != 1) /*|| fly_delete_queue(core->fly_io_queue, ev) != 1*/) { 
-            //todo: need to delete unpersist event from fly_io_queue.          
-            printf("[ERROR] remove ele from active queue queue error.\n");
-            return -1;
         } else {
             if (ev->flags & FlY_EVENT_UNPERSIST) {
                 //unpersist event, need to delete it from fly_io_queue.
@@ -520,10 +521,16 @@ int fly_process_active(fly_core *core)
                     printf("[ERROR] remove ele from active io queue error.\n");
                     return -1;
                 }
+
+                printf("[DEBUG] remove unpersist event successfully.\n");
             }
             
-            ev->status = FLY_LIST_ACTIVE; //if not set this, after delete event at queue,next cycle can't add this event to true queue.
-            printf("[DEBUG] remove unpersist event successfully.\n");
+            ev->status = FLY_LIST_ACTIVE; //if not set this, after delete event at queue,next cycle can't add this event to true queue.           
+        }
+        
+        if ((fly_delete_queue(core->fly_active_queue, ev) != 1) /*|| fly_delete_queue(core->fly_io_queue, ev) != 1*/) {       
+            printf("[ERROR] remove ele from active queue queue error.\n");
+            return -1;
         }
     }
 
