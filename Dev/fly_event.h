@@ -56,7 +56,8 @@ struct fly_event {
       FLY_EVENT_SIG mean signal event,
       FLY_EVENT_INTERNAL mean this is internal event.
       FlY_EVENT_UNPERSIST mean the event is unperesist, after called once it will both deleted from fly_io_queue and fly_active_queue
-                          while the persist event will just deleted from fly_active_queue.
+                          while the persist event will just deleted from fly_active_queue. notice that timeout event don't support persist.
+                          when we add timeout event, we must add FlY_EVENT_UNPERSIST flag manually.
     */
     int flags;
     /*

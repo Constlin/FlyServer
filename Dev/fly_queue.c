@@ -166,6 +166,24 @@ void *fly_queue_get_top(qHead queue)
     return queue->first->ele;
 }
 
+int fly_clear_queue(qHead queue)
+{
+    if (queue == NULL) {
+        return -1;
+    }
+
+    qPtr current = NULL;
+    qPtr item;
+
+    for (qPtr item = queue->first; item != NULL; item = item->next) {
+        current = item;
+        free(current);
+        current = NULL;
+    }
+
+    return 1;
+}
+
 /*
     the main's function is testing fly_queue.
     test case:

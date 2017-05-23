@@ -289,6 +289,7 @@ int fly_event_add_to_epoll(fly_core *core)
 
 	//add all events to epoll from reg queue
 	for (int i = 0; i < fly_queue_length(core->fly_reg_queue); i++) {
+        //notice: after pop from queue, the thing popped no longer exist in the queue.
 		event = fly_pop_queue(core->fly_reg_queue);
         
     	if (event == NULL) {
@@ -474,6 +475,7 @@ int fly_process_active(fly_core *core)
     
     if (core->fly_active_queue == NULL) {
         printf("[ERROR] fly_process_active: active queue is NULL.\n");
+        return -1;
     }
 
     qPtr qp = NULL;
@@ -489,9 +491,14 @@ int fly_process_active(fly_core *core)
         (*ev->callback)(ev->fd, ev->arg);
         /*
             todo: should support the persist event.
-            1.if persist event,just remove from active queue.
-            2.if not persist,remove from active queue and I/O queue and use epoll_ctl remove it from epoll .
+            1.if persist event, just remove from active queue.
+            2.if not persist, for io event: remove from active queue and I/O queue and use epoll_ctl remove it from epoll.
+                              for timeout event: as the timeout event not support persist event(the timeout eventwill pop out from fly_minheap),
+                              so we just remove from active queue.
+                              for signal event: remove from active queue and fly_map, in fly_map, we need to free the 
+                              queue's all node and then free the queue's head, notice memory leak.
         */
+        //we will not process the event's memory, it belongs to upper level master.
         if (fly_comparetime(ev->time, &tv) == 1) {
             //timeout event, we remove this timeevent both from fly_minheap
             //and active queue.
@@ -516,18 +523,36 @@ int fly_process_active(fly_core *core)
 
         } else {
             if (ev->flags & FlY_EVENT_UNPERSIST) {
-                //unpersist event, need to delete it from fly_io_queue.
-                if (fly_delete_queue(core->fly_io_queue, ev) != 1) {
-                    printf("[ERROR] remove ele from active io queue error.\n");
-                    return -1;
-                }
+                //unpersist event, need to some extra operation.
+                if (ev->flags & FLY_EVENT_SIG) {
+                    //signal's mapping queue.
+                    struct fly_queue_head *queue = core->fly_hash->fly_sig_array[ev->fd];
 
+                    if (queue == NULL) {
+                        printf("[ERROR] fly_process_active: the queue is NULL.\n");
+                        return -1;
+                    }
+                    
+                    //just free the mapping queue's every node, as the queue itself, we reserve as the same signal
+                    //may trigger again.
+                    if (fly_clear_queue(queue) == 1) {
+                        printf("[DEBUG] fly_process_active: clear signal event's mapping queue successfully.\n");
+                    }
+                } else {
+                    //common event rather signal and timeout event.
+                    if (fly_delete_queue(core->fly_io_queue, ev) != 1) {
+                        printf("[ERROR] remove ele from active io queue error.\n");
+                        return -1;
+                    }
+                }
+                
                 printf("[DEBUG] remove unpersist event successfully.\n");
             }
             
             ev->status = FLY_LIST_ACTIVE; //if not set this, after delete event at queue,next cycle can't add this event to true queue.           
         }
         
+        //both event weather unpersist or persist all need to removed from fly_active_queue.
         if ((fly_delete_queue(core->fly_active_queue, ev) != 1) /*|| fly_delete_queue(core->fly_io_queue, ev) != 1*/) {       
             printf("[ERROR] remove ele from active queue queue error.\n");
             return -1;

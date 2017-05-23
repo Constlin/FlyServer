@@ -41,9 +41,12 @@ int fly_queue_empty(qHead queue);
 //get queue length
 int fly_queue_length(qHead queue);
 
-//destroy the queue
+//destroy the queue, and free memory.
 int fly_destroy_queue(qHead queue);
 
 void *fly_queue_get_top(qHead queue);
+
+//we clear and free every node of the queue.
+int fly_clear_queue(qHead queue);
 
 #endif
