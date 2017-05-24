@@ -302,13 +302,11 @@ int fly_event_add_to_epoll(fly_core *core)
         	if (event->flags & FLY_EVENT_READ) {
         		op = EPOLL_CTL_ADD;
         	    epev.data.fd = event->fd;
-        	    epev.events = EPOLLIN | EPOLLET | EPOLLONESHOT; //just care about this event's read event,
-                                                                //set the event is EPOLLONESHOT, this means if one want 
-                                                                //epoll mode care one event one more timies, we need to use epoll_ctl add this event manually.
+        	    epev.events = EPOLLIN | EPOLLET; //just care about this event's read event,                                                                
         	} else if (event->flags & FLY_EVENT_WRITE) {
         		op = EPOLL_CTL_ADD;
         		epev.data.fd = event->fd;
-        		epev.events = EPOLLOUT | EPOLLET | EPOLLONESHOT; //just care about this event's write event
+        		epev.events = EPOLLOUT | EPOLLET; //just care about this event's write event
         	}
             /* 
                 LT: events will notify us when there has data to read or write.
@@ -505,10 +503,7 @@ int fly_process_active(fly_core *core)
             if ((fly_delete_queue(core->fly_active_queue, ev) != 1)) {
                 printf("[ERROR] remove ele from active queue/io queue error.\n");
                 return -1;
-            } else {
-                ev->status = FLY_LIST_ACTIVE; 
-                printf("[DEBUG] remove unpersist event successfully.\n");
-            }
+            } 
 
             //make fly_miheap's event's time decrease fly_minheap's top event's time.
             if (fly_minheap_time_adjust(core->fly_timeout_minheap) != 1) {
@@ -520,7 +515,14 @@ int fly_process_active(fly_core *core)
                 printf("[ERROR] fly_minheap_pop error.\n");
                 return -1;
             }
-
+            
+            //remove this event'fd from epoll. 
+            if (fly_event_remove_from_epoll(ev) == -1) {
+                printf("[ERROR] remove event from epoll error.\n");
+                return -1;
+            }
+            
+            printf("[DEBUG] remove timeout event successfully.\n"); 
         } else {
             if (ev->flags & FlY_EVENT_UNPERSIST) {
                 //unpersist event, need to some extra operation.
@@ -546,17 +548,24 @@ int fly_process_active(fly_core *core)
                     }
                 }
                 
+                //remove this event'fd from epoll. 
+                if (fly_event_remove_from_epoll(ev) == -1) {
+                    printf("[ERROR] remove event from epoll error.\n");
+                    return -1;
+                }
+
                 printf("[DEBUG] remove unpersist event successfully.\n");
-            }
-            
-            ev->status = FLY_LIST_ACTIVE; //if not set this, after delete event at queue,next cycle can't add this event to true queue.           
-        }
-        
-        //both event weather unpersist or persist all need to removed from fly_active_queue.
-        if ((fly_delete_queue(core->fly_active_queue, ev) != 1) /*|| fly_delete_queue(core->fly_io_queue, ev) != 1*/) {       
-            printf("[ERROR] remove ele from active queue queue error.\n");
-            return -1;
-        }
+            } else {
+                ev->status = FLY_LIST_ACTIVE; //if not set this, after delete event at queue,
+                                              //next cycle can't add this event to true queue. 
+                                              //unpersist event need not set this flag.
+            }   
+
+            if ((fly_delete_queue(core->fly_active_queue, ev) != 1) /*|| fly_delete_queue(core->fly_io_queue, ev) != 1*/) {       
+                printf("[ERROR] remove ele from active queue queue error.\n");
+                return -1;
+            }                             
+        }    
     }
 
     return 0;

@@ -126,11 +126,6 @@ int fly_accept_socket(int fd, fly_process_t *process)
         return -1;
     }
 
-    //test code
-    if (revent->time == NULL) {
-        printf("[TEST] fly_accept_socket: revent->time is NULL and his addr is: %d.\n", &revent->time);
-    }
-
     printf("[INFO] fly_accept_socket: accept a connection successfully.\n");
     return 1;
 
