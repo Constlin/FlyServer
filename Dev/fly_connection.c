@@ -141,18 +141,22 @@ int fly_free_connection(fly_process_t *proc, fly_connection_t *conn)
 
     if (conn->read_buf) {
     	free(conn->read_buf);
+    	conn->read_buf = NULL;
     }
 
     if (conn->write_buf) {
     	free(conn->write_buf);
+    	conn->write_buf = NULL;
     }
 
     if (conn->read) {
     	free(conn->read);
+    	conn->read = NULL;
     }
 
     if (conn->write) {
     	free(conn->write);
+    	conn->write = NULL;
     }
 
     fly_close_fd(conn->fd);
@@ -178,6 +182,7 @@ int fly_init_connection(fly_connection_t *conn)
         conn->write_buf = fly_init_buf(CONNECTION_WRITE_BUFFER);
         if (conn->write_buf == NULL) {
             fly_free_buf(conn->read_buf);
+            fly_close_fd(conn->fd);
             printf("[ERROR] fly_init_connection: fly_init_buf error.\n");
             return -1;
         }
@@ -188,6 +193,7 @@ int fly_init_connection(fly_connection_t *conn)
     	if (conn->read == NULL) {
     		fly_free_buf(conn->read_buf);
     		fly_free_buf(conn->write_buf);
+    		fly_close_fd(conn->fd);
     		return -1;
     	}
     }
@@ -197,7 +203,8 @@ int fly_init_connection(fly_connection_t *conn)
     	if (conn->write == NULL) {
     		fly_free_buf(conn->read_buf);
     		fly_free_buf(conn->write_buf);
-    		free(conn->write);
+    		free(conn->read);
+    		fly_close_fd(conn->fd);
     		return -1;
     	}
     }
@@ -218,11 +225,13 @@ void fly_read_connection(int fd, fly_connection_t *conn)
     int n = fly_recv(conn, conn->read_buf, conn->read_buf->length);
 
     if (n == 0) {
-    	printf("[WARN] fly_read_connection: client close the connection.\n");
+    	fly_free_connection(conn->process, conn);
+    	printf("[WARN] fly_read_connection: client close the connection.\n");    	
     	return;
     }
 
     if (n == FLY_ERROR) {
+    	fly_free_connection(conn->process, conn);
     	printf("[ERROR] fly_read_connection: recv error.\n");
     	return;
     }
@@ -240,9 +249,7 @@ void fly_read_connection(int fd, fly_connection_t *conn)
     	}
 
     	if (fly_event_set(conn->fd, fly_read_connection, conn->read, FLY_EVENT_READ, NULL, conn->process->event_core, NULL) == -1) {
-            fly_free_connection(conn->process, conn);
-            free(conn->read);
-            free(conn->write);
+            fly_free_connection(conn->process, conn);           
             printf("[ERROR] fly_read_connection: fly_event_set error.\n");
             return;
         }
@@ -252,15 +259,20 @@ void fly_read_connection(int fd, fly_connection_t *conn)
     conn->read_buf->length = conn->read_buf->length - n;
     printf("[info] fly_read_connection: recv %d bytes, conn->read_buf: %s.\n", n, conn->read_buf->start);
 
+    /*
     //add this connection's write event to fly_core.
-    if (fly_event_add(conn->write) != 0) {
+    int ret;
+    if ((ret = fly_event_add(conn->write)) != 0) {
         fly_free_connection(conn->process, conn);
         free(conn->read);
         free(conn->write);
-        printf("[ERROR] fly_read_connection: fly_event_add error.\n");
+        printf("[ERROR] fly_read_connection: fly_event_add error. ret; %d\n", ret);
         return -1;
     }
-
+    */
+    //todo: make this write operation ansync, now we need care the conn->fd read and write event,
+    //but I need to add this event to fly_core twice, this will cause epoll_ctl error for "file exist".
+    fly_write_connection(conn->fd, conn);
     return;
 }
 
@@ -272,17 +284,19 @@ void fly_write_connection(int fd, fly_connection_t *conn)
     }
 
     //read welcome.html content to conn's write_buf.
-    int file = open("../welcome.html", O_RDONLY);
+    int file = open("./welcome.html", O_RDONLY);
 
     if (file == -1) {
-        printf("[ERROR] fly_write_connection: open welcome.html error.\n");
+    	fly_free_connection(conn->process, conn); 
+        perror("[ERROR] fly_write_connection: open welcome.html error.\n");
         return;
     }
 
-    int length = fly_get_file_size("../welcome.html");
+    int length = fly_get_file_size("./welcome.html");
 
     if (length == -1) {
         close(file);
+        fly_free_connection(conn->process, conn); 
         printf("[ERROR] fly_write_connection: file size error.\n");
         return;
     }
@@ -291,6 +305,7 @@ void fly_write_connection(int fd, fly_connection_t *conn)
 
     if (n == -1) {
         close(file);
+        fly_free_connection(conn->process, conn); 
         printf("[ERROR] fly_write_connection: fly_read error.\n");
         return;
     }
@@ -298,6 +313,7 @@ void fly_write_connection(int fd, fly_connection_t *conn)
     if (n != length) {
         //have not read enouth bytes as we expected.
         close(file);
+        fly_free_connection(conn->process, conn); 
         printf("[ERROR] fly_write_connection: fly_read has not read enough bytes as we expected.\n");
         return;
     }
@@ -307,11 +323,13 @@ void fly_write_connection(int fd, fly_connection_t *conn)
     n = fly_send(conn, conn->write_buf, length);
 
     if (n == 0) {
+    	fly_free_connection(conn->process, conn); 
         printf("[WARN] fly_write_connection: client close the connection.\n");
         return;
     }
 
     if (n == FLY_ERROR) {
+    	fly_free_connection(conn->process, conn); 
         printf("[ERROR] fly_write_connection: fly_send error.\n");
         return;
     }
@@ -330,8 +348,6 @@ void fly_write_connection(int fd, fly_connection_t *conn)
 
         if (fly_event_set(conn->fd, fly_write_connection, conn->write, FLY_EVENT_WRITE, NULL, conn->process->event_core, NULL) == -1) {
             fly_free_connection(conn->process, conn);
-            free(conn->read);
-            free(conn->write);
             printf("[ERROR] fly_write_connection: fly_event_set error.\n");
             return;
         }
@@ -340,6 +356,7 @@ void fly_write_connection(int fd, fly_connection_t *conn)
     conn->write_buf->next = conn->write_buf->start + n;
     conn->write_buf->length = conn->write_buf->length - n;
     printf("[info] fly_write_connection: send %d bytes, conn->write: %s.\n", n, conn->write_buf->start);
-
+    //after send welcome.html to the client, we free the fly_connection_t.
+    fly_free_connection(conn->process, conn); 
     return;
 }

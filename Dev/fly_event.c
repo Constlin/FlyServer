@@ -133,7 +133,7 @@ int fly_event_add(fly_event *ev)
             //todo: free this fly_evsig, and return -1.
             return -1;
         }
-
+ 
         return 1;
     }
 
@@ -307,11 +307,16 @@ int fly_event_add_to_epoll(fly_core *core)
         		op = EPOLL_CTL_ADD;
         		epev.data.fd = event->fd;
         		epev.events = EPOLLOUT | EPOLLET; //just care about this event's write event
-        	}
+        	} else if (event->flags & (FLY_EVENT_WRITE | FLY_EVENT_READ)) {
+                op = EPOLL_CTL_ADD;
+                epev.data.fd = event->fd;
+                epev.events = EPOLLOUT | EPOLLET | EPOLLIN; //just care about this event's write and read event
+            }
             /* 
                 LT: events will notify us when there has data to read or write.
                 ET: events only notify us when the data become readable from unreadable or 
-                    writeable from unwriteable
+                    writeable from unwriteable, 
+                We use ET mode now, so we need to read and write as many as we can.
             */
             printf("[DEBUG] epoll_fd: %d, op: %d, fd: %d epev.data.fd: %d, epev.events: %d\n",core->ep_info->epoll_fd, op, event->fd, epev.data.fd, epev.events);
         	if (epoll_ctl(core->ep_info->epoll_fd, op, event->fd, &epev) == -1) {

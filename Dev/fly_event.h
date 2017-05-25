@@ -19,7 +19,7 @@ Author: Andrew lin
 #define FLY_EVENT_WRITE 0x02
 #define FLY_EVENT_SIG 0x04
 #define FLY_EVENT_INTERNAL 0x08
-#define FlY_EVENT_UNPERSIST 0x16
+#define FlY_EVENT_UNPERSIST 0x10
 
 #define FLY_CTL_ADD 0x01
 #define FLY_CTL_DEL 0x02

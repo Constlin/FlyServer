@@ -118,7 +118,7 @@ int fly_accept_socket(int fd, fly_process_t *process)
     }
     
     conn->read = revent;
-    conn->write = rwrite;
+    conn->write = wevent;
  
     //add this connectino's read event to fly_core
     if (fly_event_set(accept_fd, fly_read_connection, revent, FLY_EVENT_READ, conn, process->event_core, NULL) == -1) {
@@ -154,7 +154,7 @@ int fly_accept_socket(int fd, fly_process_t *process)
         printf("[ERROR] fly_accept_socket: fly_event_set error.\n");
         return -1;
     }
- 
+
     //we should add this event to fly_core again while we need.
     /*
     if (fly_event_add(wevent) != 0) {
@@ -164,7 +164,7 @@ int fly_accept_socket(int fd, fly_process_t *process)
         printf("[ERROR] fly_accept_socket: fly_event_add error.\n");
         return -1;
     }
-    */
+    
 
     if (fly_insert_queue(process->wevent_queue, wevent) == -1) {
         fly_free_connection(process, conn);
@@ -173,7 +173,8 @@ int fly_accept_socket(int fd, fly_process_t *process)
         printf("[ERROR] fly_accept_socket: fly_insert_queue error.\n");
         return -1;
     }
-
+    */
+    
     printf("[INFO] fly_accept_socket: accept a connection successfully.\n");
     return 1;
 
