@@ -89,4 +89,7 @@ int fly_init_connection(fly_connection_t *conn);
 //read as many as we can from this connection
 void fly_read_connection(int fd, fly_connection_t *conn);
 
+//todo: now we just write a welcome html's page to any connections' any requests.
+void fly_write_connection(int fd, fly_connection_t *conn);
+
 #endif

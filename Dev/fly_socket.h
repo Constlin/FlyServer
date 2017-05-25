@@ -21,6 +21,7 @@ struct addrinfo *fly_make_addr(fly_listening_t *listener);
 
 int fly_create_worker(const char *addr, int port);
 
+//todo: should init a connection's struct after accept a socket successfully.
 int fly_accept_socket(int fd, fly_process_t *process);
 
 int fly_bind_socket_and_listen(fly_master_t *master);

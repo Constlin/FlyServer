@@ -6,6 +6,7 @@ Author: Andrew lin
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <fcntl.h>
 #include "fly_core_file.h"
 
 //use to know which is next free connection.
@@ -228,10 +229,8 @@ void fly_read_connection(int fd, fly_connection_t *conn)
 
     if (n == FLY_AGAIN) {
     	//add this read event to fly_core again
-    	fly_event_t *revent = fly_use_fd_find_event(conn->fd, conn->process->revent_queue);
-
-    	if (revent == NULL) {
-            printf("[ERROR] fly_read_connection: fly_use_fd_find_event return NULL.\n");
+    	if (conn->read == NULL) {
+            printf("[ERROR] fly_read_connection: conn->read NULL.\n");
             //
             // if revent == NULL, there may somewhere remove this revent fromo fly_core
             // incorrectly, 
@@ -240,9 +239,10 @@ void fly_read_connection(int fd, fly_connection_t *conn)
             return -1;
     	}
 
-    	if (fly_event_set(conn->fd, fly_read_connection, revent, FLY_EVENT_READ, NULL, conn->process->event_core, NULL) == -1) {
+    	if (fly_event_set(conn->fd, fly_read_connection, conn->read, FLY_EVENT_READ, NULL, conn->process->event_core, NULL) == -1) {
             fly_free_connection(conn->process, conn);
-            free(revent);
+            free(conn->read);
+            free(conn->write);
             printf("[ERROR] fly_read_connection: fly_event_set error.\n");
             return;
         }
@@ -250,7 +250,96 @@ void fly_read_connection(int fd, fly_connection_t *conn)
 
     conn->read_buf->next = conn->read_buf->start + n;
     conn->read_buf->length = conn->read_buf->length - n;
-    printf("[info] fly_read_connection: conn->read_buf: %s.\n", conn->read_buf->start);
+    printf("[info] fly_read_connection: recv %d bytes, conn->read_buf: %s.\n", n, conn->read_buf->start);
+
+    //add this connection's write event to fly_core.
+    if (fly_event_add(conn->write) != 0) {
+        fly_free_connection(conn->process, conn);
+        free(conn->read);
+        free(conn->write);
+        printf("[ERROR] fly_read_connection: fly_event_add error.\n");
+        return -1;
+    }
+
     return;
- 
+}
+
+void fly_write_connection(int fd, fly_connection_t *conn)
+{
+    if (fd < 0 || conn == NULL) {
+        printf("[ERROR] fly_write_connection's paras error.\n");
+        return;
+    }
+
+    //read welcome.html content to conn's write_buf.
+    int file = open("../welcome.html", O_RDONLY);
+
+    if (file == -1) {
+        printf("[ERROR] fly_write_connection: open welcome.html error.\n");
+        return;
+    }
+
+    int length = fly_get_file_size("../welcome.html");
+
+    if (length == -1) {
+        close(file);
+        printf("[ERROR] fly_write_connection: file size error.\n");
+        return;
+    }
+
+    int n = fly_read(file, conn->write_buf, length);
+
+    if (n == -1) {
+        close(file);
+        printf("[ERROR] fly_write_connection: fly_read error.\n");
+        return;
+    }
+
+    if (n != length) {
+        //have not read enouth bytes as we expected.
+        close(file);
+        printf("[ERROR] fly_write_connection: fly_read has not read enough bytes as we expected.\n");
+        return;
+    }
+
+    n = 0;
+
+    n = fly_send(conn, conn->write_buf, length);
+
+    if (n == 0) {
+        printf("[WARN] fly_write_connection: client close the connection.\n");
+        return;
+    }
+
+    if (n == FLY_ERROR) {
+        printf("[ERROR] fly_write_connection: fly_send error.\n");
+        return;
+    }
+
+    if (n == FLY_AGAIN) {
+        //add this write event to fly_core again
+        if (conn->write == NULL) {
+            printf("[ERROR] fly_write_connection: conn->write NULL.\n");
+            //
+            // if revent == NULL, there may somewhere remove this revent fromo fly_core
+            // incorrectly, 
+            //
+            fly_free_connection(conn->process, conn);
+            return -1;
+        }
+
+        if (fly_event_set(conn->fd, fly_write_connection, conn->write, FLY_EVENT_WRITE, NULL, conn->process->event_core, NULL) == -1) {
+            fly_free_connection(conn->process, conn);
+            free(conn->read);
+            free(conn->write);
+            printf("[ERROR] fly_write_connection: fly_event_set error.\n");
+            return;
+        }
+    }
+
+    conn->write_buf->next = conn->write_buf->start + n;
+    conn->write_buf->length = conn->write_buf->length - n;
+    printf("[info] fly_write_connection: send %d bytes, conn->write: %s.\n", n, conn->write_buf->start);
+
+    return;
 }

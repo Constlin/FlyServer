@@ -89,6 +89,8 @@ int fly_accept_socket(int fd, fly_process_t *process)
         return -1;
     }
 
+    //we get a connection from current process's connection pool, and malloc memory for 
+    //this connection after accpet a connection succussfully.
     fly_connection_t *conn = fly_get_connection(process);
 
     if (conn == NULL) {
@@ -100,6 +102,7 @@ int fly_accept_socket(int fd, fly_process_t *process)
     fly_bind_conn_with_listener(conn, process->listener);
     
     fly_event_t *revent = malloc(sizeof(fly_event_t));
+    fly_event_t *wevent = malloc(sizeof(fly_event_t));
 
     if (revent == NULL) {
         fly_free_connection(process, conn);
@@ -107,9 +110,21 @@ int fly_accept_socket(int fd, fly_process_t *process)
         return -1;
     }
 
+    if (wevent == NULL) {
+        fly_free_connection(process, conn);
+        free(revent);
+        printf("[ERROR] fly_accept_socket: malloc error.\n");
+        return -1;
+    }
+    
+    conn->read = revent;
+    conn->write = rwrite;
+ 
+    //add this connectino's read event to fly_core
     if (fly_event_set(accept_fd, fly_read_connection, revent, FLY_EVENT_READ, conn, process->event_core, NULL) == -1) {
         fly_free_connection(process, conn);
         free(revent);
+        free(wevent);
         printf("[ERROR] fly_accept_socket: fly_event_set error.\n");
         return -1;
     }
@@ -117,11 +132,44 @@ int fly_accept_socket(int fd, fly_process_t *process)
     if (fly_event_add(revent) != 0) {
         fly_free_connection(process, conn);
         free(revent);
+        free(wevent);
         printf("[ERROR] fly_accept_socket: fly_event_add error.\n");
         return -1;
     }
 
     if (fly_insert_queue(process->revent_queue, revent) == -1) {
+        fly_free_connection(process, conn);
+        free(revent);
+        free(wevent);
+        printf("[ERROR] fly_accept_socket: fly_insert_queue error.\n");
+        return -1;
+    }
+
+    //add this connection's write event to fly_core, the connection's write event should be unpersist event,
+    //so this write event will only be oneshot,.
+    if (fly_event_set(accept_fd, fly_write_connection, wevent, FLY_EVENT_WRITE | FlY_EVENT_UNPERSIST, conn, process->event_core, NULL) == -1) {
+        fly_free_connection(process, conn);
+        free(revent);
+        free(wevent);
+        printf("[ERROR] fly_accept_socket: fly_event_set error.\n");
+        return -1;
+    }
+ 
+    //we should add this event to fly_core again while we need.
+    /*
+    if (fly_event_add(wevent) != 0) {
+        fly_free_connection(process, conn);
+        free(revent);
+        free(wevent);
+        printf("[ERROR] fly_accept_socket: fly_event_add error.\n");
+        return -1;
+    }
+    */
+
+    if (fly_insert_queue(process->wevent_queue, wevent) == -1) {
+        fly_free_connection(process, conn);
+        free(revent);
+        free(wevent);
         printf("[ERROR] fly_accept_socket: fly_insert_queue error.\n");
         return -1;
     }
