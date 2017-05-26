@@ -22,7 +22,8 @@ int fly_multiprocess_mode(fly_master_t *master)
         return -1;
     }
 
-	if (fly_master_process_cycle() == -1) {
+    printf("[DEBUG] fly_multiprocess_mode: enter master process cycle.\n");
+	if (fly_master_process_cycle(master) == -1) {
 		printf("[ERROR] fly_multiprocess_mode: master process cycle error.\n");
 		return -1;
 	}
@@ -52,8 +53,22 @@ int fly_master_process_init(fly_master_t *master)
 
 
 
-int fly_master_process_cycle()
+int fly_master_process_cycle(fly_master_t *master)
 {
+    if (master == NULL) {
+        return -1;
+    }
+
+    //in master process, close the listen fd.
+    if (master->listener) {
+        fly_listening_t *listener = fly_queue_get_top(master->listener);
+
+        if (listener) {
+            close(listener->fd);
+            printf("[DEBUG] fly_master_process_cycle: master process close the listen fd: %d.\n", listener->fd);
+        }
+    }
+    
     //todo: handle or send the signal to manage the worker process.
     for(;;) {
 
@@ -69,7 +84,7 @@ int fly_start_worker_process(fly_master_t *master)
 		return -1;
 	}
 
-    printf("[DEBUG] master: %d fly_start_worker_process.\n", (int)getpid());
+    //printf("[DEBUG] master: %d fly_start_worker_process.\n", (int)getpid());
     //todo: temporarilily set one time fork
     for (int i = 0; i < 1; ++i) {
     	fly_create_process(master, i);

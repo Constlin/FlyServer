@@ -7,6 +7,7 @@ Author: Andrew lin
 #include <string.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include "fly_event.h"
 #include "fly_core_file.h"
 
 //use to know which is next free connection.
@@ -150,17 +151,31 @@ int fly_free_connection(fly_process_t *proc, fly_connection_t *conn)
     }
 
     if (conn->read) {
+    	//before close fd, if the fd is add in fly_core, remove it.
+        if (fly_use_fd_find_event(conn->read->fd, proc->event_core->fly_io_queue) != NULL) {
+            //the fd can find in fly_io_queue means it has added into fly_core's epoll.
+            fly_event_remove_from_epoll(conn->read);
+        }
+
     	free(conn->read);
     	conn->read = NULL;
     }
 
     if (conn->write) {
+    	if (fly_use_fd_find_event(conn->write->fd, proc->event_core->fly_io_queue) != NULL) {
+            //the fd can find in fly_io_queue means it has added into fly_core's epoll.
+            fly_event_remove_from_epoll(conn->write);
+        }
     	free(conn->write);
     	conn->write = NULL;
     }
 
-    fly_close_fd(conn->fd);
-
+    //use close() to close a fd, in tcp connection, there will a problem like this:
+    //the close will close a tcp connection when the fd's reference counting become 1, so
+    //we use shutdown to close fd which will don't care the fd's reference counting.
+    //fly_close_fd(conn->fd);
+    shutdown(conn->fd, SHUT_RDWR);
+    close(conn->fd);
     return 1;
 }
 
@@ -182,7 +197,8 @@ int fly_init_connection(fly_connection_t *conn)
         conn->write_buf = fly_init_buf(CONNECTION_WRITE_BUFFER);
         if (conn->write_buf == NULL) {
             fly_free_buf(conn->read_buf);
-            fly_close_fd(conn->fd);
+            shutdown(conn->fd, SHUT_RDWR);
+            close(conn->fd);
             printf("[ERROR] fly_init_connection: fly_init_buf error.\n");
             return -1;
         }
@@ -193,7 +209,8 @@ int fly_init_connection(fly_connection_t *conn)
     	if (conn->read == NULL) {
     		fly_free_buf(conn->read_buf);
     		fly_free_buf(conn->write_buf);
-    		fly_close_fd(conn->fd);
+    		shutdown(conn->fd, SHUT_RDWR);
+            close(conn->fd);
     		return -1;
     	}
     }
@@ -204,7 +221,8 @@ int fly_init_connection(fly_connection_t *conn)
     		fly_free_buf(conn->read_buf);
     		fly_free_buf(conn->write_buf);
     		free(conn->read);
-    		fly_close_fd(conn->fd);
+    		shutdown(conn->fd, SHUT_RDWR);
+            close(conn->fd);
     		return -1;
     	}
     }
@@ -257,7 +275,7 @@ void fly_read_connection(int fd, fly_connection_t *conn)
 
     conn->read_buf->next = conn->read_buf->start + n;
     conn->read_buf->length = conn->read_buf->length - n;
-    printf("[info] fly_read_connection: recv %d bytes, conn->read_buf: %s.\n", n, conn->read_buf->start);
+    printf("[info] fly_read_connection: connection's fd: [%d] recv %d bytes, conn->read_buf:\n%s.\n", conn->fd, n, conn->read_buf->start);
 
     /*
     //add this connection's write event to fly_core.
@@ -355,8 +373,13 @@ void fly_write_connection(int fd, fly_connection_t *conn)
 
     conn->write_buf->next = conn->write_buf->start + n;
     conn->write_buf->length = conn->write_buf->length - n;
-    printf("[info] fly_write_connection: send %d bytes, conn->write: %s.\n", n, conn->write_buf->start);
+    printf("[info] fly_write_connection: send connection [%d] %d bytes, conn->write:\n%s.\n", conn->fd, n, conn->write_buf->start);
     //after send welcome.html to the client, we free the fly_connection_t.
+    //todo: if we close a connection as soon as we send data to it, 1).if the connection will has data
+    //coming again, it will cost system's resources waste. 2).after we server side close the connection
+    // then the client side close the connection, we will not send the FIN packet to client as we can't 
+    //process client's FIN packet, so we will still on the status CLOSE_WAIT.
+    //for problem 2), use shutdown() rather than close() in fly_free_connection can solve it.
     fly_free_connection(conn->process, conn); 
     return;
 }

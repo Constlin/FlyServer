@@ -51,7 +51,7 @@ int fly_multiprocess_mode(fly_master_t *master);
 
 int fly_master_process_init(fly_master_t *master);
 
-int fly_master_process_cycle();
+int fly_master_process_cycle(fly_master_t *master);
 
 int fly_start_worker_process(fly_master_t *master);
 

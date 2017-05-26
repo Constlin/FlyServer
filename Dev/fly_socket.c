@@ -175,7 +175,7 @@ int fly_accept_socket(int fd, fly_process_t *process)
     }
     */
     
-    printf("[INFO] fly_accept_socket: accept a connection successfully.\n");
+    printf("[INFO] fly_accept_socket: accept a connection successfully. listen fd: %d, accept_fd: %d.\n", fd, accept_fd);
     return 1;
 
     //add the read event for this connection to fly_core
@@ -227,7 +227,7 @@ int fly_bind_socket_and_listen(fly_master_t *master)
     	return -1;
     }
 
-    printf("[DEBUG] fly_bind_socket_and_listen successfully, addr: %s, port: %d\n", listener->addr, listener->port);
+    printf("[INFO] fly_bind_socket_and_listen successfully, addr: %s, port: %d\n", listener->addr, listener->port);
 
     return 1;
 }

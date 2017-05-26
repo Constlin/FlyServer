@@ -6,7 +6,7 @@ Author: Andrew lin
 #ifndef _FLY_SOCKET_H
 #define _FLY_SOCKET_H
 
-#define FLY_LOCAL_ADDRESS "127.0.0.1"
+#define FLY_LOCAL_ADDRESS "10.40.30.81"
 #define FLY_LOCAL_PORT     80
 
 #include <sys/socket.h>

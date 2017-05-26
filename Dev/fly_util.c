@@ -73,7 +73,7 @@ void fly_time_sub(struct timeval *tv_ret, struct timeval *tv1, struct timeval *t
 int fly_comparetime(struct timeval *tv1, struct timeval *tv2)
 {
     if (tv1 == NULL || tv2 == NULL) {
-    	printf("fly_comparetime tv1 tv2 is NULL.\n");
+    	//printf("[DEBUG] fly_comparetime: tv1 tv2 is NULL.\n");
     	return -1;
     }
     
@@ -154,7 +154,7 @@ int fly_set_nonblocking(int fd)
         }
     }
 
-    printf("[INFO] fly_set_nonblocking: set %d nonblocking.\n", fd);
+    //printf("[DEBUG] fly_set_nonblocking: set %d nonblocking.\n", fd);
     return 0;
 }
 
@@ -182,11 +182,14 @@ int fly_set_closeonexec(int fd)
 
 int fly_close_fd(int fd)
 {
+    int temp = fd;
+    
     if (close(fd) != 0) {
         printf("[ERROR] close fd error.\n");
         return -1;
     }
 
+    printf("[INFO] close fd: %d.\n", fd);
     return 0;
 }
 

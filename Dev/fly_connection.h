@@ -45,7 +45,7 @@ struct fly_listening {
 typedef struct fly_listening fly_listening_t;
 
 struct fly_connection {
-	//the sockef fd that this fly_connection assicuated.
+	//the sockef fd that this fly_connection assicuated. it's accept()'s return fd.
     int               fd;
 
     //the read event about this fly_connection.

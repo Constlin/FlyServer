@@ -354,6 +354,7 @@ int fly_event_remove_from_epoll(fly_event *event)
         return -1;
     }
 
+    printf("[DEBUG] fly_event_remove_from_epoll: epoll del successfully. event's fd: %d.\n", event->fd);
     return 1;
 }
 
