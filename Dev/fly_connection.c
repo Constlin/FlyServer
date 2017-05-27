@@ -173,6 +173,8 @@ int fly_free_connection(fly_process_t *proc, fly_connection_t *conn)
     //use close() to close a fd, in tcp connection, there will a problem like this:
     //the close will close a tcp connection when the fd's reference counting become 1, so
     //we use shutdown to close fd which will don't care the fd's reference counting.
+    //note: the shutdown will just only close a connestion's read/write side, it will not close fd itself,
+    //so we still need to close(fd) after shutdown.
     //fly_close_fd(conn->fd);
     shutdown(conn->fd, SHUT_RDWR);
     close(conn->fd);
