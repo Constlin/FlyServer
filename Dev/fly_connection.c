@@ -95,7 +95,6 @@ fly_connection_t *fly_get_connection(fly_process_t *proc)
         
     }
     
-
     //now, we can get conn from conn_pool as there are free connections exist.
     fly_connection_t *conn;
     conn = proc->free_conn;
@@ -166,6 +165,7 @@ int fly_free_connection(fly_process_t *proc, fly_connection_t *conn)
             //the fd can find in fly_io_queue means it has added into fly_core's epoll.
             fly_event_remove_from_epoll(conn->write);
         }
+
     	free(conn->write);
     	conn->write = NULL;
     }
@@ -245,6 +245,8 @@ void fly_read_connection(int fd, fly_connection_t *conn)
     int n = fly_recv(conn, conn->read_buf, conn->read_buf->length);
 
     if (n == 0) {
+        //todo: when the client send a FIN packet to FlyServer, observe that if we shutdown and close this connection's fd, 
+        //does FlyServer will stay in CLOSE_WAIT state.
     	fly_free_connection(conn->process, conn);
     	printf("[WARN] fly_read_connection: client close the connection.\n");    	
     	return;
@@ -274,11 +276,14 @@ void fly_read_connection(int fd, fly_connection_t *conn)
             return;
         }
     }
-
+    
     conn->read_buf->next = conn->read_buf->start + n;
-    conn->read_buf->length = conn->read_buf->length - n;
+    conn->read_buf->cap = conn->read_buf->cap - n;
     printf("[info] fly_read_connection: connection's fd: [%d] recv %d bytes, conn->read_buf:\n%s.\n", conn->fd, n, conn->read_buf->start);
 
+    //after use this buffer which contained by fly_connection content, we reset the buffer next pointer and cap.
+    conn->read_buf->next = conn->read_buf->next - n;
+    conn->read_buf->cap = conn->read_buf->cap + n;
     /*
     //add this connection's write event to fly_core.
     int ret;
@@ -337,7 +342,9 @@ void fly_write_connection(int fd, fly_connection_t *conn)
         printf("[ERROR] fly_write_connection: fly_read has not read enough bytes as we expected.\n");
         return;
     }
-
+    
+    conn->write_buf->next += n;
+    conn->write_buf->cap -= n;
     n = 0;
 
     n = fly_send(conn, conn->write_buf, length);
@@ -373,15 +380,12 @@ void fly_write_connection(int fd, fly_connection_t *conn)
         }
     }
 
-    conn->write_buf->next = conn->write_buf->start + n;
-    conn->write_buf->length = conn->write_buf->length - n;
+    conn->write_buf->next -= n;
+    conn->write_buf->cap += n;
     printf("[info] fly_write_connection: send connection [%d] %d bytes, conn->write:\n%s.\n", conn->fd, n, conn->write_buf->start);
     //after send welcome.html to the client, we free the fly_connection_t.
-    //todo: if we close a connection as soon as we send data to it, 1).if the connection will has data
-    //coming again, it will cost system's resources waste. 2).after we server side close the connection
-    // then the client side close the connection, we will not send the FIN packet to client as we can't 
-    //process client's FIN packet, so we will still on the status CLOSE_WAIT.
-    //for problem 2), use shutdown() rather than close() in fly_free_connection can solve it.
+    //notice: if we close a connection as soon as we send data to it.
+    //todo: test after FlyServer closing this connection, does FlyServer will stay in TIME_WAIT state.
     fly_free_connection(conn->process, conn); 
     return;
 }

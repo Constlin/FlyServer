@@ -82,6 +82,7 @@ int fly_connection_pool_init(fly_process_t *proc);
 fly_connection_t *fly_get_connection(fly_process_t *proc);
 
 //free a connection, notice we just make it reused insted of freeing it, so while get conn we need to memset(buf, 0, bufsize)
+//notice: call fly_free_connection will shutdown and close this connection's fd.
 int fly_free_connection(fly_process_t *proc, fly_connection_t *conn);
 
 int fly_init_connection(fly_connection_t *conn);

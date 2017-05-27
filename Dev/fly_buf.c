@@ -29,6 +29,7 @@ fly_buf_t *fly_init_buf(int bytes)
     buf->next = buf->start;
     buf->end = buf->start + bytes;
     buf->length = bytes;
+    buf->cap = bytes;
 
     return buf;
 }

@@ -16,7 +16,9 @@ int fly_recv(fly_connection_t *conn, fly_buf_t *buf, int length)
     int n;
     
 	do {
-        n = recv(conn->fd, buf->start, length, 0);
+        //we use recv to copy the data from kernal's tcpip stack's buffer to user's buffer.
+        //every recv will return the data that exist in the kernal's buffer. if recv data's number > 0, we return right away.
+        n = recv(conn->fd, buf->next, length, 0);
 
         if (n == 0) {
         	return n;
@@ -51,6 +53,8 @@ int fly_send(fly_connection_t *conn, fly_buf_t *buf, int length)
 	int n;
 
 	for ( ;; ) {
+        //the send() just move the data from user space to kernal space, for the time that data sent to remote server, 
+        //it depends on TCP/IP stack.
         n = send(conn->fd, buf->start, length, 0);
 
         if (n == 0) {
@@ -82,7 +86,7 @@ int fly_read(int fd, fly_buf_t *buf, int length)
 
     int leftbytes = length;
     int n;
-    char *p = buf->start;
+    char *p = buf->next;
 
     while (leftbytes > 0) {
         n = read(fd, p, length);

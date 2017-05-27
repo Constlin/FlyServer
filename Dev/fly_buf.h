@@ -23,7 +23,10 @@ struct fly_buf {
     void *end;
     
     //the length of a buffer
-    int   length;    
+    int   length;
+    
+    //the cap of a fly_buf(bytes)
+    int   cap;    
 };
 
 typedef struct fly_buf fly_buf_t;
