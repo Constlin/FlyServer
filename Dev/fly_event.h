@@ -13,13 +13,15 @@ Author: Andrew lin
 #define FLY_LIST_REG 0x01
 #define FLY_LIST_ACTIVE 0x02
 #define FLY_LIST_PROCESS 0x04
-#define FLY_MINHEAP_REG 0X08
+#define FLY_MINHEAP_REG 0x08
+#define FLY_LIST_PRIORITY 0x10
 
 #define FLY_EVENT_READ 0x01
 #define FLY_EVENT_WRITE 0x02
 #define FLY_EVENT_SIG 0x04
 #define FLY_EVENT_INTERNAL 0x08
 #define FlY_EVENT_UNPERSIST 0x10
+#define FLY_EVENT_CONNECTION 0x20
 
 #define FLY_CTL_ADD 0x01
 #define FLY_CTL_DEL 0x02
@@ -58,14 +60,17 @@ struct fly_event {
       FlY_EVENT_UNPERSIST mean the event is unperesist, after called once it will both deleted from fly_io_queue and fly_active_queue
                           while the persist event will just deleted from fly_active_queue. notice that timeout event don't support persist.
                           when we add timeout event, we must add FlY_EVENT_UNPERSIST flag manually.
+      FLY_EVENT_CONNECTION mean this event is a connection event and need to accept right away, we add this event to high priority.
+                           FLY_EVENT_CONNECTION type event will added to fly_priority_queue after return from epoll_wait. and in 
     */
     int flags;
     /*
       the event next in which queue.
       FLY_LIST_REG mean need to add in registered queue,      
-      FLY_LIST_ACTIVE mean it's in registered queue and need to add in active queue,
+      FLY_LIST_ACTIVE mean it's in registered queue and need to add in active queue or priority queue,
       FLY_LIST_PROCESS mean it's in active queue and wait for processing.
       FLY_MINHEAP_REG mean it's a timeout event and need to add to minheap.
+      FLY_LIST_PRIORITY mean it's a high PRIORITY event and store in fly_priority_queue and next we need to call his callback method.
     */
     int status;
     /*
@@ -98,7 +103,12 @@ struct fly_core {
     /*
       I/O even queue which save the I/O event has added into epoll
     */
-    struct fly_queue_head *fly_io_queue;
+    struct fly_queue_head *fly_io_queue;  
+    /*
+      high priority event that need to processed right away, the normal active events should be processed after this 
+      high priority events processed done. and timeout event has the most high priority.
+    */
+    struct fly_queue_head *fly_priority_queue;
     /*
       store the information about epoll
     */
@@ -165,5 +175,9 @@ long fly_event_get_timeout(fly_core *core);
 int fly_process_timeout(fly_core *core);
 
 void fly_core_clear(fly_core *core);
+
+int fly_add_event_to_priority(fly_event *event);
+
+int fly_process_priority(fly_core *core);
 
 #endif

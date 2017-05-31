@@ -98,7 +98,16 @@ int fly_create_process(fly_master_t *master, int index)
 
 	switch (pid) {
 		case -1:
-		    printf("[ERROR] fly_create_process: fork error.\n");
+		    perror("[ERROR] fly_create_process: fork error.");
+            
+            if (errno == EAGAIN) {
+                pringt("[ERROR] fly_create_process: current process's sum is too much.\n");
+            }
+
+            if (errno == ENOMEM) {
+                printf("[ERROR] fly_create_process: lack memory.\n");
+            }
+
 		    return -1;
 		case 0:
 		    //worker process
@@ -227,6 +236,7 @@ int fly_destroy_connection_pool(fly_process_t *process)
     return -1;
 }
 
+//todo: support to change a process's title.
 int fly_init_process_title()
 {
 

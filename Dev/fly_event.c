@@ -30,11 +30,12 @@ fly_core *fly_core_init()
     core->fly_reg_queue = fly_init_queue();
     core->fly_active_queue = fly_init_queue();
     core->fly_io_queue = fly_init_queue();
+    core->fly_priority_queue = fly_init_queue();
     core->fly_timeout_minheap = fly_minheap_init(core->fly_timeout_minheap);
     core->fly_hash = fly_hash_init();
     core->fly_socketpair[0] = core->fly_socketpair[1] = -1;
 
-    if (core->fly_reg_queue == NULL || core->fly_active_queue == NULL || core->fly_io_queue == NULL || core->fly_hash == NULL) {
+    if (core->fly_reg_queue == NULL || core->fly_active_queue == NULL || core->fly_io_queue == NULL || core->fly_hash == NULL || core->fly_priority_queue) {
 	    fly_core_clear(core);
         return NULL;
     }
@@ -263,7 +264,12 @@ void fly_core_cycle(fly_core *core)
         }
 
         fly_process_timeout(core);
-           
+        
+        if (fly_queue_empty(core->fly_priority_queue) != 1) {
+            printf("[DEBUG] priority queue is not empty, process high priority event.\n");
+            fly_process_priority(core);
+        }
+
         if (fly_queue_empty(core->fly_active_queue) != 1) {
             printf("[DEBUG] active queue is not empty, process active event.\n");
             fly_process_active(core);
@@ -412,8 +418,18 @@ int fly_event_dispatch(fly_core *core)
         if (what & EPOLLIN) {
             /*
               I/O became readable,
-              add active to active queue.
+              if the event is high priority event add this event to fly_priority_queue, otherwise add this normal active event
+              to active queue.
             */            
+            if (ev->flags & FLY_EVENT_CONNECTION) {
+                if (fly_add_event_to_priority(ev) == -1) {
+                    //todo: we just continue for add error happens.
+                    continue;
+                }
+
+                continue;
+            }
+
             if (fly_event_add(ev) != 0) {
                 //if error,ignore it.
                 //printf("event add to queue error.\n");
@@ -422,8 +438,16 @@ int fly_event_dispatch(fly_core *core)
         } else if (what & EPOLLOUT) {
             /*
               i/o become writeable,
-              add to active queue.
             */
+            if (ev->flags & FLY_EVENT_CONNECTION) {
+                if (fly_add_event_to_priority(ev) == -1) {
+                    //todo: we just continue for add error happens.
+                    continue;
+                }
+
+                continue;
+            }
+
             if (fly_event_add(ev) != 0) {
                 //printf("event add to queue error.\n");
                 continue;
@@ -636,14 +660,21 @@ void fly_core_clear(fly_core *core)
 
     if (core->fly_active_queue != NULL) {
         if (fly_destroy_queue(core->fly_active_queue) != 1) {
-            printf("[ERROR] destroy queue fly_reg_queue error.\n");
+            printf("[ERROR] destroy queue fly_active_queue error.\n");
             //don't return, we need to free other.
         }
     }
 
     if (core->fly_io_queue != NULL) {
         if (fly_destroy_queue(core->fly_io_queue) != 1) {
-            printf("[ERROR] destroy queue fly_reg_queue error.\n");
+            printf("[ERROR] destroy queue fly_io_queue error.\n");
+            //don't return, we need to free other.
+        }
+    }
+
+    if (core->fly_priority_queue != NULL) {
+        if (fly_destroy_queue(core->fly_priority_queue) != 1) {
+            printf("[ERROR] destroy queue fly_priority_queue error.\n");
             //don't return, we need to free other.
         }
     }
@@ -680,6 +711,97 @@ void fly_core_clear(fly_core *core)
     free(core);      
 }
 
+
+int fly_add_event_to_priority(fly_event *event)
+{
+    if (event == NULL) {
+        return -1;
+    }
+
+    if (event->core == NULL) {
+        return -1;
+    }
+
+    if (event->core->fly_priority_queue == NULL) {
+        return -1;
+    }
+
+    if (fly_insert_queue(event->core->fly_priority_queue, event) == -1) {
+        return -1;
+    }
+
+    event->status = FLY_LIST_PRIORITY;
+    return 1;
+}
+
+int fly_process_priority(fly_core *core)
+{
+    if (core == NULL) {
+        return -1;
+    }
+
+    if (core->fly_priority_queue == NULL) {
+        printf("[ERROR] fly_process_priority: fly_priority_queue is NULL.\n");
+        return -1;
+    }
+    
+    fly_event *ev;
+    qPtr qp = NULL;
+
+    for (qp = core->fly_priority_queue->first; qp != NULL; qp = qp->next) {
+        ev = qp->ele;
+
+        if (ev == NULL) {
+            printf("[ERROR] ev is NULL.\n");
+            //todo: just continue and ignore the null event.
+            continue;
+        } 
+
+        (*ev->callback)(ev->fd, ev->arg);
+
+        if (ev->flags & FlY_EVENT_UNPERSIST) {
+            //unpersist event, need to some extra operation.
+            if (ev->flags & FLY_EVENT_SIG) {
+                //signal's mapping queue.
+                struct fly_queue_head *queue = core->fly_hash->fly_sig_array[ev->fd];
+
+                if (queue == NULL) {
+                    printf("[ERROR] fly_process_priority: the queue is NULL.\n");
+                    return -1;
+                }
+                    
+                //just free the mapping queue's every node, as the queue itself, we reserve as the same signal
+                //may trigger again.
+                if (fly_clear_queue(queue) == 1) {
+                    printf("[DEBUG] fly_process_priority: clear signal event's mapping queue successfully.\n");
+                }
+            } else {
+                //common event rather signal and timeout event.
+                if (fly_delete_queue(core->fly_io_queue, ev) != 1) {
+                    printf("[ERROR] fly_process_priority: remove ele from active io queue error.\n");
+                    return -1;
+                }
+            }
+                
+            //remove this event'fd from epoll. 
+            if (fly_event_remove_from_epoll(ev) == -1) {
+                printf("[ERROR] fly_process_priority: remove event from epoll error.\n");
+                return -1;
+            }
+
+            printf("[DEBUG] fly_process_priority: remove unpersist event successfully.\n");
+        } else {
+            ev->status = FLY_LIST_ACTIVE; //if not set this, after delete event at queue,
+                                          //next cycle can't add this event to true queue. 
+                                          //unpersist event need not set this flag.
+        }   
+
+        if ((fly_delete_queue(core->fly_priority_queue, ev) != 1) /*|| fly_delete_queue(core->fly_io_queue, ev) != 1*/) {       
+            printf("[ERROR] fly_process_priority :remove ele from priority queue queue error.\n");
+            return -1;
+        } 
+    } //end for loop
+}
 /*
 void time_out()
 {

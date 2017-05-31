@@ -87,7 +87,10 @@ int fly_free_connection(fly_process_t *proc, fly_connection_t *conn);
 
 int fly_init_connection(fly_connection_t *conn);
 
-//read as many as we can from this connection
+//read as many as we can from this connection just one time.
+//todo: in future, to support http, we need to change read connection's logic.
+//for example, when we need to process http request, we need to get and process http request line first, but the request line may
+//need to recved many times.
 void fly_read_connection(int fd, fly_connection_t *conn);
 
 //todo: now we just write a welcome html's page to any connections' any requests.
