@@ -160,8 +160,7 @@ int fly_hash_free(fly_hash_p hash)
 	}
 
     for (int i = 0; i <= hash->fly_hash_cap; ++i){
-    	fly_destroy_queue((hash->fly_sig_array[i])->fly_queue);
-    	free(hash->fly_sig_array[i]);
+        fly_hash_delete_sig(hash, i);
     }
 
     free(hash);

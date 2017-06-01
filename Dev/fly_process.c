@@ -59,6 +59,8 @@ int fly_master_process_cycle(fly_master_t *master)
         return -1;
     }
 
+    //todo: for the master process and the worker processes, who will run first is uncertain, so we can't close listen fd.
+#if 0
     //in master process, close the listen fd.
     if (master->listener) {
         fly_listening_t *listener = fly_queue_get_top(master->listener);
@@ -68,7 +70,7 @@ int fly_master_process_cycle(fly_master_t *master)
             printf("[DEBUG] fly_master_process_cycle: master process close the listen fd: %d.\n", listener->fd);
         }
     }
-    
+#endif   
     //todo: handle or send the signal to manage the worker process.
     for(;;) {
 
@@ -101,7 +103,7 @@ int fly_create_process(fly_master_t *master, int index)
 		    perror("[ERROR] fly_create_process: fork error.");
             
             if (errno == EAGAIN) {
-                pringt("[ERROR] fly_create_process: current process's sum is too much.\n");
+                printf("[ERROR] fly_create_process: current process's sum is too much.\n");
             }
 
             if (errno == ENOMEM) {

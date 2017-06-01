@@ -35,7 +35,7 @@ fly_core *fly_core_init()
     core->fly_hash = fly_hash_init();
     core->fly_socketpair[0] = core->fly_socketpair[1] = -1;
 
-    if (core->fly_reg_queue == NULL || core->fly_active_queue == NULL || core->fly_io_queue == NULL || core->fly_hash == NULL || core->fly_priority_queue) {
+    if (core->fly_reg_queue == NULL || core->fly_active_queue == NULL || core->fly_io_queue == NULL || core->fly_hash == NULL || core->fly_priority_queue == NULL) {
 	    fly_core_clear(core);
         return NULL;
     }

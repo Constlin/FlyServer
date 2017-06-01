@@ -73,7 +73,6 @@ int fly_bind_socket(fly_listening_t *listener)
     return 1;
 }
 
-//todo: complete the logic about processing tcp connection coming and next opearation about read and write
 //called when the listen socket has data
 int fly_accept_socket(int fd, fly_process_t *process)
 {
@@ -88,7 +87,7 @@ int fly_accept_socket(int fd, fly_process_t *process)
         perror("[ERROR] fly_accept_socket: accept error.");
         return -1;
     }
-
+    
     //we get a connection from current process's connection pool, and malloc memory for 
     //this connection after accpet a connection succussfully.
     fly_connection_t *conn = fly_get_connection(process);

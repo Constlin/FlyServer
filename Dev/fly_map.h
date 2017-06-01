@@ -13,7 +13,8 @@ author: Andrew lin
 
 struct fly_hash {
 	/*
-	 *fly_sig is an array, the array's ele is an pionter which point to fly_sig,
+	 *fly_sig_array is an array, the array's ele is an pionter which point to fly_sig and 
+     *the fly_sig contain a queue's head.
      *the index is the signal's number, the fly_sig_array[0] means signal which number is 1.
      */
     struct fly_sig **fly_sig_array;         
