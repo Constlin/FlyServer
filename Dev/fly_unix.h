@@ -10,6 +10,7 @@ Author: Andrew lin
 #include "fly_core_file.h"
 
 /* 
+   noblocking recv mode, can't proved that read length bytes content.
    if recv return >= 0, we just return the number. 
    else if the error is EAGAIN, we return FLY_AGAIN; if EINTR, we recv again right away;
    other error we return FLY_ERROR. 

@@ -87,8 +87,8 @@ int fly_start_worker_process(fly_master_t *master)
 	}
 
     //printf("[DEBUG] master: %d fly_start_worker_process.\n", (int)getpid());
-    //todo: temporarilily set one time fork
-    for (int i = 0; i < 1; ++i) {
+    //todo: need to solve the 'jingqun' problem.
+    for (int i = 0; i < master->worker_number; ++i) {
     	fly_create_process(master, i);
     	++master->used;
     }
@@ -103,11 +103,11 @@ int fly_create_process(fly_master_t *master, int index)
 		    perror("[ERROR] fly_create_process: fork error.");
             
             if (errno == EAGAIN) {
-                printf("[ERROR] fly_create_process: current process's sum is too much.\n");
+                printf("[INFO] fly_create_process: current process's sum is too much.\n");
             }
 
             if (errno == ENOMEM) {
-                printf("[ERROR] fly_create_process: lack memory.\n");
+                printf("[INFO] fly_create_process: lack memory.\n");
             }
 
 		    return -1;
@@ -183,6 +183,7 @@ int fly_worker_process_init(fly_master_t *master, int index)
     	return -1;
     }
 
+    //todo: now we have high priority type event in fly_core, next we need to set the listen fd about event to be high priority event!
     if (fly_event_set(process->fd, fly_accept_socket, event, FLY_EVENT_READ, process, process->event_core, NULL) == -1) {
     	printf("[ERROR] fly_worker_process_init: fly_event_set error.\n");
     	fly_core_clear(process->event_core);

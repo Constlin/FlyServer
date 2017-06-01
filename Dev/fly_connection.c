@@ -242,6 +242,31 @@ void fly_read_connection(int fd, fly_connection_t *conn)
         return;
     }
 
+#if 0
+    //todo: use a for loop to prove that read as we expected. for example,
+    for ( ; ;) {
+    ......
+        n = fly_recv(...);
+        if (n > 0) {
+	        process the recved data. if data is complete, break the for loop,
+	        if incomplete, just continue the for loop,
+	        if the data has error data, just return.
+        }
+
+        if (n == 0) {
+	        return;
+        }
+
+        if (n < 0) {
+	        return;
+        }
+
+        if (n == FLY_AGAIN) {
+	        it mean this time we can't recv any data, we will add this event to fly_again again.
+        }
+    ......
+    }
+#endif
     int n = fly_recv(conn, conn->read_buf, conn->read_buf->length);
 
     if (n == 0) {
