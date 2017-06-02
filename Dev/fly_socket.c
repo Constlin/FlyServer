@@ -81,10 +81,28 @@ int fly_accept_socket(int fd, fly_process_t *process)
         return -1;
     }
 
+    //load balance:
+    //use a mutex lock, only worker process which get the mutex lock can accept a connection,
+    //and only the worker process which has enough free connections will get the mutex lock.
+    if ((process->used_conn_number/8 - process->left_conn_number) > 0) {
+        printf("[WARN] fly_accept_socket: the worker process has two many connection need to processed, will not accept new connection.\n");
+        return 0;
+    }
+
+    if (pthread_mutex_trylock(&fly_accept_mutex) != 0) {
+        printf("[WARN] fly_accept_socket: try to lock the fly_accept_mutex failed.\n");
+        return 0;
+    }
+
     int accept_fd;
 
     if ((accept_fd = accept(process->fd, NULL, NULL)) == -1) {
         perror("[ERROR] fly_accept_socket: accept error.");
+        return -1;
+    }
+
+    if (pthread_mutex_unlock(&fly_accept_mutex) != 0) {
+        printf("[ERROR] fly_accept_socket: unlock the fly_accept_mutex failed.\n");
         return -1;
     }
     
