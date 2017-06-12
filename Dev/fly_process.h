@@ -7,11 +7,7 @@ Author: Andrew lin
 #define _FLY_PROCESS_H
 
 #include <unistd.h>
-#include <pthread.h>
 #include "fly_core_file.h"
-
-//used for worker process's accpeting load balance.
-pthread_mutex_t fly_accept_mutex = PTHREAD_MUTEX_INITIALIZER; 
 
 struct fly_process {
 	pid_t              pid;

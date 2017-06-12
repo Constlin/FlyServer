@@ -8,11 +8,15 @@ Author: Andrew lin
 #include <stdlib.h>
 #include <string.h>
 #include <netdb.h>
+#include <pthread.h>
 #include "fly_util.h"
 #include "fly_socket.h"
 #include "fly_connection.h"
 #include "fly_queue.h"
 #include "fly_event.h"
+
+//used for worker process's accpeting load balance.
+pthread_mutex_t fly_accept_mutex = PTHREAD_MUTEX_INITIALIZER; 
 
 int fly_bind_socket(fly_listening_t *listener)
 {
@@ -76,6 +80,8 @@ int fly_bind_socket(fly_listening_t *listener)
 //called when the listen socket has data
 int fly_accept_socket(int fd, fly_process_t *process)
 {
+    printf("[DEBUG] fly_accept_socket: worker process: [%d] want to get a new connection.\n", process->pid);
+
     if (fd != process->fd) {
         printf("[ERROR] fly_accept_socket: fd != process->fd.\n");
         return -1;
@@ -106,6 +112,7 @@ int fly_accept_socket(int fd, fly_process_t *process)
         return -1;
     }
     
+    printf("[INFO] fly_accept_socket: worker process: [%d] get a new connection and unlock the mutex.\n", process->pid);
     //we get a connection from current process's connection pool, and malloc memory for 
     //this connection after accpet a connection succussfully.
     fly_connection_t *conn = fly_get_connection(process);
